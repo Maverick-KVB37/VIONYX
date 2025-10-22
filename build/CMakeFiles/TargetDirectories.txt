@@ -1,2 +1,0 @@
-/home/kvb/Desktop/PROJECTS/ASTROVE/build/CMakeFiles/edit_cache.dir
-/home/kvb/Desktop/PROJECTS/ASTROVE/build/CMakeFiles/rebuild_cache.dir
