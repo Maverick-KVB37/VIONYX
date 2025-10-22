@@ -1,72 +1,96 @@
+# Astrove Chess Engine
+
+## Project Structure
+
+```text
 Astrove/
-│
 ├── src/
+│   ├── core/                  # Foundation
+│   │   ├── types.h
+│   │   ├── bitboard.h
+│   │   ├── attacks.h
+│   │   ├── attacks.cpp
+│   │   ├── magic.cpp
+│   │   └── zobrist.cpp
 │   │
-│   ├── core/                           [Foundation - 5 files]
-│   │   ├── types.h                     // All types, enums
-│   │   ├── bitboard.h                  // Bitboard ops (inline)
-│   │   ├── attacks.h/.cpp              // Attack generation
-│   │   ├── magic.cpp                   // Magic bitboards
-│   │   └── zobrist.cpp                 // Zobrist hashing
+│   ├── board/
+│   │   ├── position.h
+│   │   ├── position.cpp
+│   │   ├── movegen.h
+│   │   ├── movegen.cpp
+│   │   ├── see.h
+│   │   └── see.cpp
 │   │
-│   ├── board/                          [Board - 5 files]
-│   │   ├── position.h                  
-│   │   ├── position.cpp                
-│   │   ├── movegen.h                   
-│   │   ├── movegen.cpp                 
-│   │   └── see.h/.cpp                  // Static Exchange Eval
+│   ├── search/
+│   │   ├── search.h
+│   │   ├── search.cpp
+│   │   ├── negamax.cpp
+│   │   ├── quiescence.cpp
+│   │   ├── aspiration.cpp
+│   │   ├── ordering.h
+│   │   ├── ordering.cpp
+│   │   ├── pruning.cpp
+│   │   ├── extensions.cpp
+│   │   ├── timemanager.h
+│   │   ├── timemanager.cpp
+│   │   ├── thread.h
+│   │   └── thread.cpp
 │   │
-│   ├── search/                         [Search - 10 files]
-│   │   ├── search.h                    
-│   │   ├── search.cpp                  // Iterative deepening
-│   │   ├── negamax.cpp                 // Main search
-│   │   ├── quiescence.cpp              // Q-search
-│   │   ├── aspiration.cpp              // Aspiration windows
-│   │   ├── ordering.h/.cpp             // Move ordering
-│   │   ├── pruning.cpp                 // All pruning techniques
-│   │   ├── extensions.cpp              // Extensions
-│   │   ├── timemanager.h/.cpp          // Time management
-│   │   └── thread.h/.cpp               // Lazy SMP
+│   ├── eval/
+│   │   ├── evaluate.h
+│   │   ├── evaluate.cpp
+│   │   ├── material.cpp
+│   │   ├── psqt.h
+│   │   ├── psqt.cpp
+│   │   ├── pawns.h
+│   │   ├── pawns.cpp
+│   │   ├── king_safety.h
+│   │   ├── king_safety.cpp
+│   │   ├── mobility.cpp
+│   │   ├── pieces.cpp
+│   │   ├── threats.cpp
+│   │   ├── space.cpp
+│   │   └── passed_pawns.cpp
 │   │
-│   ├── eval/                           [Evaluation - 12 files]
-│   │   ├── evaluate.h                  
-│   │   ├── evaluate.cpp                // Main eval dispatcher
-│   │   ├── material.cpp                // Material
-│   │   ├── psqt.h/.cpp                 // Piece-square tables
-│   │   ├── pawns.h/.cpp                // Pawn structure (CRITICAL!)
-│   │   ├── king_safety.h/.cpp          // King safety (CRITICAL!)
-│   │   ├── mobility.cpp                // Mobility
-│   │   ├── pieces.cpp                  // Piece-specific eval
-│   │   ├── threats.cpp                 // Threats
-│   │   ├── space.cpp                   // Space control
-│   │   └── passed_pawns.cpp            // Passed pawn evaluation
+│   ├── table/
+│   │   ├── tt.h
+│   │   ├── tt.cpp
+│   │   ├── pawn_cache.h
+│   │   ├── pawn_cache.cpp
+│   │   ├── material_cache.h
+│   │   └── material_cache.cpp
 │   │
-│   ├── table/                          [Tables - 5 files]
-│   │   ├── tt.h/.cpp                   // Transposition table
-│   │   ├── pawn_cache.h/.cpp           // Pawn hash
-│   │   └── material_cache.h/.cpp       // Material hash
+│   ├── endgame/
+│   │   ├── endgame.h
+│   │   ├── endgame.cpp
+│   │   ├── bitbases.h
+│   │   ├── bitbases.cpp
+│   │   ├── syzygy.h
+│   │   └── syzygy.cpp
 │   │
-│   ├── endgame/                        [Endgame - 6 files]
-│   │   ├── endgame.h/.cpp              // Endgame evaluation
-│   │   ├── bitbases.h/.cpp             // Bitbase positions
-│   │   └── syzygy.h/.cpp               // Syzygy support
+│   ├── book/
+│   │   ├── polyglot.h
+│   │   ├── polyglot.cpp
+│   │   └── book.bin
 │   │
-│   ├── book/                           [Opening - 3 files]
-│   │   ├── polyglot.h/.cpp             
-│   │   └── book.bin                    
+│   ├── tuning/
+│   │   ├── tuner.h
+│   │   ├── tuner.cpp
+│   │   ├── texel.h
+│   │   ├── texel.cpp
+│   │   └── spsa.cpp
 │   │
-│   ├── tuning/                         [Tuning - 5 files]
-│   │   ├── tuner.h/.cpp                
-│   │   ├── texel.h/.cpp                
-│   │   └── spsa.cpp                    
+│   ├── uci/
+│   │   ├── uci.h
+│   │   ├── uci.cpp
+│   │   ├── options.h
+│   │   └── options.cpp
 │   │
-│   ├── uci/                            [UCI - 4 files]
-│   │   ├── uci.h/.cpp                  
-│   │   └── options.h/.cpp              
-│   │
-│   ├── utils/                          [Utils - 4 files]
-│   │   ├── perft.h/.cpp                
-│   │   └── benchmark.h/.cpp            
+│   ├── utils/
+│   │   ├── perft.h
+│   │   ├── perft.cpp
+│   │   ├── benchmark.h
+│   │   └── benchmark.cpp
 │   │
 │   └── main.cpp
 │
@@ -77,7 +101,6 @@ Astrove/
 │   │   └── 3-7piece/
 │   └── tuning/
 │       └── quiet-labeled.epd
-│tuning
-
+│
 ├── CMakeLists.txt
 └── README.md
