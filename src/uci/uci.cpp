@@ -13,8 +13,14 @@
 
 // Don't redefine defaultFEN - it's already in position.h
 
-UCI::UCI() : pos(), tt() {
-    searcher = new Search::Searcher(pos, tt);
+UCI::UCI() : pos(nullptr), tt() {
+    pos = new Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    searcher = new Search::Searcher(*pos, tt);
+}
+
+UCI::~UCI() {
+    delete searcher;
+    delete pos;
 }
 
 void UCI::uciLoop() {
@@ -38,26 +44,28 @@ void UCI::uciLoop() {
         }
         else if (command == "ucinewgame") {
             tt.clear();
-            pos = Position(defaultFEN);
-            searcher->newGame();
+
+            if (searcher) {
+                searcher->newGame();
+            }
         }
         else if (command == "position") {
             std::string token;
             iss >> token;
 
             if (token == "startpos") {
-                pos.parseFEN(defaultFEN);
+                pos->parseFEN(defaultFEN);
 
                 // Check if there are moves to apply
                 if (iss >> token && token == "moves") {
                     std::string moveUci;
                     while (iss >> moveUci) {
                         Move move = parseMove(moveUci);
-                        if (pos.sideToMove() == White) {
-                            pos.makemove<White>(move);
+                        if (pos->sideToMove() == White) {
+                            pos->makemove<White>(move);
                         }
                         else {
-                            pos.makemove<Black>(move);
+                            pos->makemove<Black>(move);
                         }
                     }
                 }
@@ -73,18 +81,18 @@ void UCI::uciLoop() {
                 }
                 if (!fen.empty() && fen.back() == ' ') fen.pop_back();
 
-                pos.parseFEN(fen);
+                pos->parseFEN(fen);
 
                 // Apply moves if present
                 if (part == "moves" || (iss >> part && part == "moves")) {
                     std::string moveUci;
                     while (iss >> moveUci) {
                         Move move = parseMove(moveUci);
-                        if (pos.sideToMove() == White) {
-                            pos.makemove<White>(move);
+                        if (pos->sideToMove() == White) {
+                            pos->makemove<White>(move);
                         }
                         else {
-                            pos.makemove<Black>(move);
+                            pos->makemove<Black>(move);
                         }
                     }
                 }
@@ -134,10 +142,8 @@ void UCI::uciLoop() {
             }
 
             // Call think() which handles search
-            Move bestMove = searcher->think(limits);
-            
-            // Output best move
-            std::cout << "bestmove " << bestMove.to_uci_string() << "\n";
+            searcher->think(limits);
+
         }
         else if (command == "stop") {
             searcher->stop();
@@ -147,7 +153,7 @@ void UCI::uciLoop() {
             break;
         }
         else if (command == "print") {
-            pos.print();
+            pos->print();
         }
     }
 }
@@ -155,10 +161,10 @@ void UCI::uciLoop() {
 Move UCI::parseMove(const std::string& moveUci) {
     MoveList movelist;
     
-    if (pos.sideToMove() == White) {
-        gen.generate_all_moves<White>(pos, movelist);
+    if (pos->sideToMove() == White) {
+        gen.generate_all_moves<White>(*pos, movelist);
     } else {
-        gen.generate_all_moves<Black>(pos, movelist);
+        gen.generate_all_moves<Black>(*pos, movelist);
     }
 
     if (moveUci.size() < 4) {
@@ -205,8 +211,5 @@ void UCI::bootEngine() {
     // Initialize TT
     tt.init(64); // 64 MB
     
-    // Initialize position
-    pos = Position(defaultFEN);
-
     std::cout << "Astrove UCI-compatible engine ready\n";
 }

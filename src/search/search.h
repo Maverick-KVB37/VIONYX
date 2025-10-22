@@ -34,7 +34,7 @@ using ASTROVE::eval::Evaluator;
 namespace Search {
 
 // constants
-constexpr int MAX_PLY = 128;
+constexpr int MAX_PLY = 256;
 constexpr int INFINITE = 50000;
 constexpr int MATE_SCORE = 49000;
 constexpr int TB_WIN_SCORE = 48000;
@@ -54,12 +54,25 @@ struct PVLine {
     void clear() { length = 0; }
 
     void update(Move move, const PVLine& childPV) {
+        if (childPV.length < 0 || childPV.length >= MAX_PLY) {
+            // Child PV is corrupted, just use the move
+            moves[0] = move;
+            length = 1;
+            return;
+        }
+
         moves[0] = move;
         length = 1;
+        
         // Copy the child's PV into this one
-        for (int i = 0; i < childPV.length && i < MAX_PLY - 1; i++) {
-            moves[i + 1] = childPV.moves[i];
-            length++;
+        int maxCopy = std::min(childPV.length, MAX_PLY - 1);
+        for (int i = 0; i < maxCopy; ++i) {
+            if (length < MAX_PLY) {
+                moves[length] = childPV.moves[i];
+                length++;
+            } else {
+                break;
+            }
         }
     }
 };
@@ -75,9 +88,14 @@ struct SearchStack {
     int doubleExtensions = 0;
     PVLine pv;
 
+    SearchStack() {
+        clear();
+    }
+
     void clear() {
         currentMove = excludedMove = NO_MOVE;
-        killers[0] = killers[1] = NO_MOVE;
+        killers[0] = NO_MOVE;
+        killers[1] = NO_MOVE;
         staticEval = moveCount = doubleExtensions = 0;
         inCheck = false;
         pv.clear();

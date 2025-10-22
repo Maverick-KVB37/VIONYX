@@ -62,7 +62,7 @@ int MoveOrderer::see(const Position& pos, Move move) {
     PieceType attacker = piecetype(pos.pieceAt(fromSq));
     Color sideToMove = ~pos.sideToMove();
 
-    int gain[32] = {0};
+    int gain[64] = {0};
     int depth = 0;
 
     Bitboard occupiedBB = pos.occupancy(White) | pos.occupancy(Black);
@@ -76,6 +76,9 @@ int MoveOrderer::see(const Position& pos, Move move) {
 
     while (attackerBB != 0) {
         depth++;
+        if (depth >= 64) {
+            break;
+        }
         gain[depth] = SEEVALUE[attacker] - gain[depth - 1];
         if (std::max(-gain[depth - 1], gain[depth]) < 0)
             break;
@@ -132,10 +135,15 @@ bool MoveOrderer::seeGe(const Position& pos, Move move, int threshold) {
 #include "ordering.h"
 #include <algorithm>
 
-void MoveOrderer::scoreMoves(const Position& pos, std::vector<Move>& moves, Move ttMove, Move killers[2]) {
+void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2]) {
+   // std::cerr << "DEBUG: scoreMoves entered, moves.size=" << moves.size() << "\n";
+
+    scores.clear();
     scores.resize(moves.size());
     
     for (size_t i = 0; i < moves.size(); i++) {
+        //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
+
         const Move& move = moves[i];
         int score = 0;
         
@@ -146,18 +154,63 @@ void MoveOrderer::scoreMoves(const Position& pos, std::vector<Move>& moves, Move
         } else if (move.from() == killers[1].from() && move.to() == killers[1].to()) {
             score = 80000;
         } else if (move.is_capture()) {
+            //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
             score = see(pos, move) + 10000;
+            //std::cerr << "DEBUG: see returned score=" << score << "\n";
         } else {
             score = 0;
         }
         
         scores[i] = score;
     }
-    
+    /*
     std::sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {
         size_t i = &a - &moves[0];
         size_t j = &b - &moves[0];
         return scores[i] > scores[j];
     });
+    */
+    
+    size_t n = moves.size();
+    for (size_t i = 0; i < n && i < 256; i++) {  // Add safety limit
+        size_t maxIdx = i;
+        for (size_t j = i + 1; j < n && j < 256; j++) {  // Add safety limit
+            if (scores[j] > scores[maxIdx]) {
+                maxIdx = j;
+            }
+        }
+        if (maxIdx != i) {
+            // Safe swap
+            Move tempMove = moves[i];
+            moves[i] = moves[maxIdx];
+            moves[maxIdx] = tempMove;
+            
+            int tempScore = scores[i];
+            scores[i] = scores[maxIdx];
+            scores[maxIdx] = tempScore;
+        }
+    }
+    //std::cerr << "DEBUG: scoreMoves done\n";
+
+}
+
+void MoveOrderer::scoreCaptures(const Position& pos, MoveList& captures) {
+    scores.clear();
+    scores.resize(captures.size());
+    
+    for (size_t i = 0; i < captures.size(); i++) {
+        const Move& move = captures[i];
+        scores[i] = see(pos, move);
+    }
+    
+    // Sort captures by SEE value
+    for (size_t i = 0; i < captures.size(); i++) {
+        for (size_t j = i + 1; j < captures.size(); j++) {
+            if (scores[j] > scores[i]) {
+                std::swap(captures[i], captures[j]);
+                std::swap(scores[i], scores[j]);
+            }
+        }
+    }
 }
 
