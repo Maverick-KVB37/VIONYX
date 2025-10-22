@@ -1,106 +1,45 @@
-# Astrove Chess Engine
+# ASTROVE Chess Engine
 
-## Project Structure
+A UCI-compatible chess engine written in C++17.
 
-```text
-Astrove/
-├── src/
-│   ├── core/                  # Foundation
-│   │   ├── types.h
-│   │   ├── bitboard.h
-│   │   ├── attacks.h
-│   │   ├── attacks.cpp
-│   │   ├── magic.cpp
-│   │   └── zobrist.cpp
-│   │
-│   ├── board/
-│   │   ├── position.h
-│   │   ├── position.cpp
-│   │   ├── movegen.h
-│   │   ├── movegen.cpp
-│   │   ├── see.h
-│   │   └── see.cpp
-│   │
-│   ├── search/
-│   │   ├── search.h
-│   │   ├── search.cpp
-│   │   ├── negamax.cpp
-│   │   ├── quiescence.cpp
-│   │   ├── aspiration.cpp
-│   │   ├── ordering.h
-│   │   ├── ordering.cpp
-│   │   ├── pruning.cpp
-│   │   ├── extensions.cpp
-│   │   ├── timemanager.h
-│   │   ├── timemanager.cpp
-│   │   ├── thread.h
-│   │   └── thread.cpp
-│   │
-│   ├── eval/
-│   │   ├── evaluate.h
-│   │   ├── evaluate.cpp
-│   │   ├── material.cpp
-│   │   ├── psqt.h
-│   │   ├── psqt.cpp
-│   │   ├── pawns.h
-│   │   ├── pawns.cpp
-│   │   ├── king_safety.h
-│   │   ├── king_safety.cpp
-│   │   ├── mobility.cpp
-│   │   ├── pieces.cpp
-│   │   ├── threats.cpp
-│   │   ├── space.cpp
-│   │   └── passed_pawns.cpp
-│   │
-│   ├── table/
-│   │   ├── tt.h
-│   │   ├── tt.cpp
-│   │   ├── pawn_cache.h
-│   │   ├── pawn_cache.cpp
-│   │   ├── material_cache.h
-│   │   └── material_cache.cpp
-│   │
-│   ├── endgame/
-│   │   ├── endgame.h
-│   │   ├── endgame.cpp
-│   │   ├── bitbases.h
-│   │   ├── bitbases.cpp
-│   │   ├── syzygy.h
-│   │   └── syzygy.cpp
-│   │
-│   ├── book/
-│   │   ├── polyglot.h
-│   │   ├── polyglot.cpp
-│   │   └── book.bin
-│   │
-│   ├── tuning/
-│   │   ├── tuner.h
-│   │   ├── tuner.cpp
-│   │   ├── texel.h
-│   │   ├── texel.cpp
-│   │   └── spsa.cpp
-│   │
-│   ├── uci/
-│   │   ├── uci.h
-│   │   ├── uci.cpp
-│   │   ├── options.h
-│   │   └── options.cpp
-│   │
-│   ├── utils/
-│   │   ├── perft.h
-│   │   ├── perft.cpp
-│   │   ├── benchmark.h
-│   │   └── benchmark.cpp
-│   │
-│   └── main.cpp
-│
-├── data/
-│   ├── books/
-│   │   └── performance.bin
-│   ├── syzygy/
-│   │   └── 3-7piece/
-│   └── tuning/
-│       └── quiet-labeled.epd
-│
-├── CMakeLists.txt
-└── README.md
+## Overview
+
+ASTROVE is a chess engine implementing bitboard-based move generation, principal variation search (PVS), and quiescence search. The engine uses a 64MB transposition table with Zobrist hashing for position evaluation.
+
+
+## Strength
+
+Estimated rating: **~1427 Elo**
+
+### Match Results vs Stockfish 1320 Elo
+```
+Score of ASTROVE v1.0 vs Stockfish 1320: 32 - 17 - 1 [0.650] 50
+... ASTROVE v1.0 playing White: 16 - 8 - 1 [0.660] 25
+... ASTROVE v1.0 playing Black: 16 - 9 - 0 [0.640] 25
+... White vs Black: 25 - 24 - 1 [0.510] 50
+Elo difference: 107.5 +/- 103.5, LOS: 98.4%, DrawRatio: 2.0%
+```
+
+## Features
+
+- Bitboard representation (12 bitboards for piece types)
+- Magic bitboard move generation for sliding pieces
+- Principal Variation Search (PVS) with alpha-beta pruning
+- Quiescence search for tactical positions
+- Transposition table (64MB default)
+- Move ordering: hash move, MVV-LVA captures, killer moves
+- UCI protocol support
+- Zobrist hashing for position keys
+
+## Testing
+
+Run test match against Stockfish:
+
+
+
+## License
+
+MIT License
+
+Copyright (c) 2025 Kirti Vardhan Bhushan
+

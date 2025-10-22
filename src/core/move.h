@@ -40,7 +40,7 @@ public:
     constexpr Square from() const { return Square(m_data & 0x3f); }
     constexpr Square to() const { return Square((m_data >> 6) & 0x3f); }
     constexpr MoveFlag flag() const { return MoveFlag((m_data >> 12) & 0xf); }
-
+    bool is_valid() const { return m_data != 0; }
     // Helpers
     constexpr bool is_capture() const { return (flag() &0x4)!=0; }
     constexpr bool is_promotion() const { return (flag() >= KnightPromotion); }
@@ -78,3 +78,4 @@ extern const Move NO_MOVE;
 
 // A list of move
 using MoveList = std::vector<Move>;
+

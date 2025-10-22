@@ -12,7 +12,7 @@ extern Zobrist zobristInstance;
 
 class UCI {
 public:
-    Position pos;
+    Position* pos;
     TranspositionTable tt;
     Search::Searcher* searcher;
     MoveGenerator gen;
@@ -20,7 +20,7 @@ public:
     std::thread searchThread;
 
     UCI();
-
+    ~UCI();
     void uciLoop();
     void bootEngine();
     Move parseMove(const std::string& moveUci);

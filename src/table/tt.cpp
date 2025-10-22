@@ -1,26 +1,19 @@
 #include "tt.h"
 #include <cstring>
+#include <cstdlib>
 
 TranspositionTable::TranspositionTable() : table(nullptr), numEntries(0), currentAge(0) {}
 
 TranspositionTable::~TranspositionTable() {
     if (table) {
-        delete[] table;
+        ::operator delete[](table, std::align_val_t(64));
     }
 }
 
 // clear all tt entries
 void TranspositionTable::clear() {
     if (!table) return;
-    for (size_t i = 0; i < numEntries; ++i) {
-        table[i].key = 0;
-        table[i].depth = 0;
-        table[i].flag = 0;
-        table[i].score = 0;
-        table[i].eval = 0;
-        table[i].age = 0;
-        table[i].bestMove = Move();
-    }
+    std::memset(table, 0, numEntries * sizeof(TTEntry));
 }
 
 
@@ -32,14 +25,16 @@ void TranspositionTable::init(size_t sizeMB) {
     numEntries = bytes / sizeof(TTEntry);
     if (numEntries == 0) {
         std::cerr << "Failed TT allocation.\n";
-        exit(1);
+        throw std::bad_alloc();
     }
 
-    if (table) free(table);
-    table = static_cast<TTEntry*>(aligned_alloc(64, numEntries * sizeof(TTEntry)));
-    if (!table) {
-        std::cerr << "FATAL: TT allocation failed for " << sizeMB << "MB.\n";
-        exit(1);
+    try {
+        table = static_cast<TTEntry*>(
+            ::operator new[](numEntries * sizeof(TTEntry), std::align_val_t(64))
+        );
+    } catch (const std::bad_alloc&) {
+        std::cerr << "FATAL: TT allocation failed for " << sizeMB << " MB.\n";
+        throw;
     }
 
     clear();
@@ -74,11 +69,11 @@ void TranspositionTable::store(uint64_t key, int depth, int flag,
     }
 
     replace->key   = key;
-    replace->depth = depth;
-    replace->flag  = flag;
+    replace->depth = static_cast<int8_t>(depth);
+    replace->flag  = static_cast<uint8_t>(flag);
     replace->score = static_cast<int16_t>(score);
     replace->eval  = static_cast<int16_t>(eval);
-    replace->age   = currentAge;
+    replace->age   = static_cast<uint8_t>(currentAge);
     replace->bestMove = bestMove;
 }
 
@@ -120,9 +115,14 @@ bool TranspositionTable::probe(uint64_t key, int depth, int alpha,
 
 // calculate hash table fill ratio
 int TranspositionTable::hashfull() const {
-    if (!table) return 0;
+    if (!table || numEntries==0) return 0;
     int cnt = 0;
-    for (int i = 0; i < 1000; ++i)
-        if (table[i].key) cnt++;
-    return cnt / 10; // percentage (0–100)
+
+    int sampled = std::min(1000, static_cast<int>(numEntries));
+    
+    for (int i = 0; i < sampled; ++i) {
+        if (table[i].key != 0) cnt++;
+    }
+    
+    return (cnt * 1000) / sampled;
 }

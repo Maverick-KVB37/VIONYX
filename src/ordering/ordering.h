@@ -2,18 +2,19 @@
 #include "../core/types.h"
 #include "../core/move.h"
 #include "../board/position.h"
+#include "../board/movegen.h"
 
 class MoveOrderer {
 public:
     MoveOrderer() = default;
 
     // Score quiet and non-capture moves for ordering
-    void scoreMoves(const Position& pos, std::vector<Move>& moves, Move ttMove, Move killers[2]);
+    void scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2]);
 
     // Score capture moves for ordering using SEE
-    void scoreCaptures(const Position& pos, std::vector<Move>& captures);
+    void scoreCaptures(const Position& pos, MoveList& captures);
 
-        // Static Exchange Evaluation to order captures
+    // Static Exchange Evaluation to order captures
     int see(const Position& pos, Move move);
 
     bool seeGe(const Position& pos, Move move, int threshold);
