@@ -16,7 +16,7 @@ public:
           softTimeForMove(NoValue) {}
 
     // Initialize timer with info from search limits
-    void start(const Search::SearchLimits& limits);
+    void start(const Search::SearchLimits& limits,int sideToMove);
 
     // Periodically check if time expired and update Stop flag
     void Check();
