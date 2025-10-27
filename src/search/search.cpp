@@ -31,7 +31,7 @@ Move Searcher::think(const SearchLimits& limits) {
     //std::cerr << "DEBUG: New search\n";
     tt.newSearch();
     //std::cerr << "DEBUG: Starting time manager\n";
-    tm.start(limits);
+    tm.start(limits,pos.sideToMove());
 
     //std::cerr << "DEBUG: Starting iterative deepening\n";
     iterative_deepening(); // main search loop
@@ -60,7 +60,7 @@ void Searcher::iterative_deepening() {
             score = pvs<Black, true>(depth, 0, -INFINITE, INFINITE, false);
         }
         
-        // Time & cutoff check
+        // check hard time
         check_time();
         if (stopFlag) break;
 
@@ -315,8 +315,13 @@ int Searcher::quiescence(int alpha, int beta, int ply) {
 
 
 void Searcher::check_time() {
-    if (tm.elapsed() >= tm.softTime() || tm.StopFlag())
+    //checks if hardTime exceeded
+    tm.Check();
+
+    //stops when hard time reached
+    if (tm.StopFlag()){
         stopFlag = true;
+    }
 }
 
 void Searcher::update_uci_info(int depth, int score, const PVLine& pv) {

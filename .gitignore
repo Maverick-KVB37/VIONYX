@@ -39,3 +39,8 @@
 
 # debug information files
 *.dwo
+
+#testing output files
+*.pgn
+*.png
+*.vscode

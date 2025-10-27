@@ -129,13 +129,7 @@ private:
     
     inline void toggleSide() {
         state->hashKey ^= zobrist.sideKey;
-    }  
-    
-    // Update castling rights based on move
-    void updateCastlingRights(Square from, Square to);
-    
-    // Calculate check and pin masks
-    template <Color c> void calculateCheckAndPinMasks();
+    }
     
 };
 
