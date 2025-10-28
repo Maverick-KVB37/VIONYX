@@ -84,6 +84,24 @@ public:
     Bitboard pieces(Color c, PieceType pt) const {
         return PiecesBB[c * 6 + pt];
     }
+    
+    // for NULL MOVE PRUNIGN
+    template <Color c>
+    inline bool hasNonPawnMaterial() const {
+        return (knights<c>()|bishops<c>()|rooks<c>()|queens<c>())!=0ULL; 
+    }
+
+    //NULL MOVE
+    template <Color c>
+    inline void makeNullMove();
+
+    //unmake null move
+    template <Color c>
+    inline void unmakeNullMove(Square sq,uint8_t halfMove,uint16_t fullMove);
+
+    // getter for NMP
+    inline uint8_t getHalfMoveClock() const { return state->halfMoveClock; }
+    inline uint16_t getFullMoves() const { return fullMoveCounter; }
 private:
         // Board representation
     Bitboard PiecesBB[12];
@@ -501,4 +519,46 @@ inline bool Position::isDrawByFiftyMove() const {
     // no draw possible before 4 halfmove
     if (halfMoveCounter < 4) return false;
     return halfMoveCounter >= 100;
+}
+
+template <Color c>
+inline void Position::makeNullMove(){
+        if(state->enpassantSquare!=NO_SQ){
+            toggleEnpassant(state->enpassantSquare);
+        }
+
+        state->enpassantSquare=NO_SQ;
+
+        state->halfMoveClock++;
+        if(c==Black){
+            fullMoveCounter++;
+        }
+
+        //switch side to move and toggle in hash
+        stm=~c;
+        toggleSide();
+
+        positionHistory.push_back(hash());
+}
+
+template <Color c>
+inline void Position::unmakeNullMove(Square ep,uint8_t halfMove,uint16_t fullmove){
+    if(!positionHistory.empty()){
+        positionHistory.pop_back();
+    }
+
+    stm=c;
+    toggleSide();
+
+    if(c==Black){
+        fullMoveCounter=fullmove;
+    }
+
+    state->halfMoveClock=halfMove;
+
+    state->enpassantSquare=ep;
+
+    if(ep!=NO_SQ){
+        toggleEnpassant(ep);
+    }
 }
