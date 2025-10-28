@@ -153,11 +153,10 @@ Score Evaluator::calculate_final_score(const Position& pos) const {
 }
 
     // ----- Placeholders for future enhancements -----
-    void Evaluator::evaluate_pawns(const Position& pos) {/* TODO */}
-    void Evaluator::evaluate_knights(const Position& pos) {/* TODO */}
-    void Evaluator::evaluate_bishops(const Position& pos) {/* TODO */}
-    void Evaluator::evaluate_rooks(const Position& pos) {/* TODO */}
-    void Evaluator::evaluate_queens(const Position& pos) {/* TODO */}
-    void Evaluator::evaluate_king_safety(const Position& pos) {/* TODO */}
-
+    //void Evaluator::evaluate_pawns(const Position& pos) {/* TODO */}
+    //void Evaluator::evaluate_knights(const Position& pos) {/* TODO */}
+   // void Evaluator::evaluate_bishops(const Position& pos) {/* TODO */}
+    //void Evaluator::evaluate_rooks(const Position& pos) {/* TODO */}
+    //void Evaluator::evaluate_queens(const Position& pos) {/* TODO */}
+   // void Evaluator::evaluate_king_safety(const Position& pos) {/* TODO */}
 }

@@ -39,7 +39,7 @@ constexpr int INFINITE = 50000;
 constexpr int MATE_SCORE = 49000;
 constexpr int TB_WIN_SCORE = 48000;
 constexpr int MATE_BOUND = MATE_SCORE - MAX_PLY;
-
+constexpr int NO_RAZOR=-9999999;
 // Forward declarations
 struct SearchLimits;
 struct PVLine;
@@ -54,25 +54,14 @@ struct PVLine {
     void clear() { length = 0; }
 
     void update(Move move, const PVLine& childPV) {
-        if (childPV.length < 0 || childPV.length >= MAX_PLY) {
-            // Child PV is corrupted, just use the move
-            moves[0] = move;
-            length = 1;
-            return;
-        }
-
         moves[0] = move;
         length = 1;
         
         // Copy the child's PV into this one
         int maxCopy = std::min(childPV.length, MAX_PLY - 1);
         for (int i = 0; i < maxCopy; ++i) {
-            if (length < MAX_PLY) {
                 moves[length] = childPV.moves[i];
                 length++;
-            } else {
-                break;
-            }
         }
     }
 };
@@ -180,6 +169,28 @@ private:
     int score_to_tt(int score, int ply) const;
     int score_from_tt(int score, int ply) const;
 
+    // Null Move Pruning
+    template <Color c>
+    bool tryNullMove(int alpha,int beta,int depth,int ply,int& score);
+
+    template <Color c>
+    bool tryReverseFutility(int beta, int depth, int ply, int& score);
+
+    template <Color c>
+    bool shouldPruneMove(int depth,int moveCount,bool inCheck,
+                                     bool isCapture,bool isPromotion,bool givesCheck);
+    
+    template <Color c>
+    int tryRazoring(int alpha, int depth, int ply);
+
+    template <Color c>
+    bool canFutilityPrune(int alpha,int depth,int staticEval,
+                                      bool isCapture,bool isPromotion,bool givesCheck);
+    
+    void initLMR();
+    int getLMRReduction(int depth, int moveCount, bool isPV, bool improving);
+    bool shouldReduceMove(int depth, int legalMoves, bool inCheck,
+                          bool isCapture, bool isPromotion);
     // --- DATA MEMBERS ---
     Position& pos;
     TranspositionTable& tt;
