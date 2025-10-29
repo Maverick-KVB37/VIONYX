@@ -62,13 +62,6 @@ namespace eval{
 
         void initialize(const Position& pos);
         void evaluate_material_and_placement(const Position& pos);
-        // Placeholder for future detailed evaluation functions
-        void evaluate_pawns(const Position& pos);
-        void evaluate_knights(const Position& pos);
-        void evaluate_bishops(const Position& pos);
-        void evaluate_rooks(const Position& pos);
-        void evaluate_queens(const Position& pos);
-        void evaluate_king_safety(const Position& pos);
 
         int calculate_game_phase(const Position& pos) const;
         Score calculate_final_score(const Position& pos) const;
