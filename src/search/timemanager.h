@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include "../core/types.h"
 
 namespace Search {
     struct SearchLimits;
@@ -8,40 +9,38 @@ namespace Search {
 class TimeManager {
 public:
     TimeManager()
-        : TimeLeft(InfiniteTime),
-          Increment(NoValue),
-          MovesToGo(NoValue),
-          Stop(false),
-          hardTimeForMove(NoValue),
-          softTimeForMove(NoValue) {}
+        : timeLeft(0),
+          increment(0),
+          movesToGo(0),
+          timeForMove(0),
+          stopFlag(false) {}
 
     // Initialize timer with info from search limits
-    void start(const Search::SearchLimits& limits,int sideToMove);
+    void start(const Search::SearchLimits& limits,Color sideToMove,int moveNumber=0);
 
     // Periodically check if time expired and update Stop flag
     void Check();
 
     // Elapsed time in milliseconds since start
-    int elapsed() const;
+    int64_t elapsed() const;
 
     // Returns whether time limit or stop condition triggered
-    bool StopFlag() const;
+    bool StopFlag() const { return stopFlag; }
 
-    // Soft time cutoff allowance (ms)
-    int softTime() const;
+    int64_t allocatedTime() const { return timeForMove; }
 
 private:
     static constexpr int NoValue = 0;
     static constexpr int InfiniteTime = -1;
 
-    int TimeLeft;           // Remaining time for current move (ms)
-    int Increment;          // Increment per move (ms)
-    int MovesToGo;          // Number of moves before next time control
-    bool Stop;              // Flag to indicate search should stop
+    int64_t timeLeft;           // Remaining time for current move (ms)
+    int64_t increment;          // Increment per move (ms)
+    int64_t movesToGo;          // Number of moves before next time control
+    int64_t timeForMove;
+    bool stopFlag;              // Flag to indicate search should stop
 
-    std::chrono::time_point<std::chrono::system_clock> startTime; // start timestamp
-    std::chrono::time_point<std::chrono::system_clock> stopTime;  // stop timestamp threshold
+    std::chrono::steady_clock::time_point startTime;
+    std::chrono::steady_clock::time_point stopTime;
 
-    int hardTimeForMove; // Hard cutoff for time per move in ms
-    int softTimeForMove; // Soft time cutoff in ms (to avoid overshoot)
+    int64_t estimateMovesRemaining(int moveNumber, int64_t movesToGo, int64_t increment) const;
 };
