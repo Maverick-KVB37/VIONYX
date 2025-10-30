@@ -39,7 +39,7 @@ constexpr int INFINITE = 50000;
 constexpr int MATE_SCORE = 49000;
 constexpr int TB_WIN_SCORE = 48000;
 constexpr int MATE_BOUND = MATE_SCORE - MAX_PLY;
-constexpr int NO_RAZOR=-9999999;
+
 // Forward declarations
 struct SearchLimits;
 struct PVLine;
@@ -95,10 +95,12 @@ struct SearchStack {
 struct SearchLimits {
     int depth = MAX_PLY;
     uint64_t nodes = UINT64_MAX;
-    int movetime = 0;
-    int movestogo = 0;
-    int time[2] = {0, 0};
-    int inc[2] = {0, 0};
+    int64_t movetime = 0;
+    int64_t movestogo = 0;
+    int64_t wtime=0;
+    int64_t btime=0;
+    int64_t winc=0;
+    int64_t binc=0;
     bool infinite = false;
     bool ponder = false;
     std::vector<Move> searchmoves;
