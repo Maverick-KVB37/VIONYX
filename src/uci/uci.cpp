@@ -107,6 +107,10 @@ void UCI::uciLoop() {
             limits.nodes = UINT64_MAX;
             limits.movetime = 0;
             limits.movestogo = 0;
+            limits.wtime = 0;
+            limits.btime = 0;  
+            limits.winc = 0;   
+            limits.binc = 0;
             limits.infinite = false;
             limits.ponder = false;
 
@@ -116,16 +120,16 @@ void UCI::uciLoop() {
                     iss >> limits.movetime;
                 }
                 else if (token == "wtime") {
-                    iss >> limits.time[White];
+                    iss >> limits.wtime;
                 }
                 else if (token == "btime") {
-                    iss >> limits.time[Black];
+                    iss >> limits.btime;
                 }
                 else if (token == "winc") {
-                    iss >> limits.inc[White];
+                    iss >> limits.winc;
                 }
                 else if (token == "binc") {
-                    iss >> limits.inc[Black];
+                    iss >> limits.binc;
                 }
                 else if (token == "movestogo") {
                     iss >> limits.movestogo;

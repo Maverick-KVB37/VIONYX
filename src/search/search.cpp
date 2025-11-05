@@ -23,18 +23,35 @@ Move Searcher::think(const SearchLimits& limits) {
     this->selDepth = 0;
 
     tt.newSearch();
-    //std::cerr << "DEBUG: Starting time manager\n";
-    tm.start(limits,pos.sideToMove());
+
+    //calculate move number
+    int fullMoves=pos.getFullMoves();
+    int moveNumber;
+    if(pos.sideToMove()==White){
+        moveNumber=(fullMoves-1)*2;
+    }
+    else{
+        moveNumber=(fullMoves-1)*2+1;
+    }
+
+    // Debug output
+    /*std::cerr << "DEBUG: fullMoves=" << fullMoves 
+              << " side=" << (pos.sideToMove() == White ? "White" : "Black")
+              << " moveNumber=" << moveNumber << std::endl;
+    */
+    tm.start(limits,pos.sideToMove(),moveNumber);
+
+    // Debug output
+    //std::cerr << "DEBUG: Allocated time: " << tm.allocatedTime() << "ms" << std::endl;
 
     iterative_deepening(); // main search loop
 
     Move bestMove = NO_MOVE;
-    
     if (info.pv.length > 0) {
         bestMove = info.pv.moves[0];
     }
     
-       bool moveInvalid = (bestMove.from() == bestMove.to()) || 
+    bool moveInvalid = (bestMove.from() == bestMove.to()) || 
                        (bestMove.from() >= 64) || 
                        (bestMove.to() >= 64);
     

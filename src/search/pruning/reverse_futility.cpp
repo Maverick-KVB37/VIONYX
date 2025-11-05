@@ -1,5 +1,5 @@
 #include "../search.h"
-
+/*
 namespace Search{
 
     /**
@@ -9,7 +9,7 @@ namespace Search{
      * allow it,so return beta immediately.
      * 
      */
-
+    /*
     template <Color c>
     bool Searcher::tryReverseFutility(int beta,int depth,int ply,int& score){
         // condition to skip RFP
@@ -43,3 +43,4 @@ namespace Search{
     template bool Searcher::tryReverseFutility<White>(int,int,int,int&);
     template bool Searcher::tryReverseFutility<Black>(int,int,int,int&);
 }
+*/
