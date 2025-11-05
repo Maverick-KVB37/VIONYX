@@ -1,5 +1,5 @@
 #include "../search.h"
-
+/*
 namespace Search{
 
     template <Color c>
@@ -27,3 +27,4 @@ namespace Search{
     template bool Searcher::canFutilityPrune<White>(int,int,int,bool,bool,bool);
     template bool Searcher::canFutilityPrune<Black>(int,int,int,bool,bool,bool);
 }
+*/

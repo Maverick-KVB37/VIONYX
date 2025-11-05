@@ -1,8 +1,19 @@
 # ASTROVE Chess Engine Makefile
 # Compiler and flags
-CXX := g++
-CXXFLAGS := -std=c++17 -O3 -Wall -Wextra -flto -march=native
-LDFLAGS := -pthread -flto
+CXX = g++
+CXXFLAGS_BASE = -std=c++17 -Wall -Wextra
+
+# Optimized build (use this for releases and testing)
+CXXFLAGS_OPT = $(CXXFLAGS_BASE) -O3 -march=native -flto -DNDEBUG -funroll-loops -ffast-math
+
+# Profiling build
+CXXFLAGS_PROF = $(CXXFLAGS_BASE) -O2 -g -pg
+
+# Debug build
+CXXFLAGS_DEBUG = $(CXXFLAGS_BASE) -g -O0
+
+# Default: optimized
+CXXFLAGS = $(CXXFLAGS_OPT)
 
 # Directories
 SRC_DIR := src
@@ -11,6 +22,14 @@ BIN_DIR := .
 
 # Target executable
 TARGET := $(BIN_DIR)/ASTROVE
+
+all: $(TARGET)
+
+profile: CXXFLAGS = $(CXXFLAGS_PROF)
+profile: clean $(TARGET)
+
+debug: CXXFLAGS = $(CXXFLAGS_DEBUG)
+debug: clean $(TARGET)
 
 # Source files - automatically find all .cpp files
 BOARD_SRC := $(wildcard $(SRC_DIR)/board/*.cpp)

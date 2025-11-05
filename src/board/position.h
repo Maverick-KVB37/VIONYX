@@ -55,7 +55,7 @@ public:
     inline U8 castling() const { return state->castlingRights; }
 
     // Attack queries
-    template <Color c> bool isSquareAttacked(Square sq) const;
+    template <Color c> inline bool isSquareAttacked(Square sq) const;
     template <Color c> Square kingsq() const;
     template <Color c> bool inCheck() const;
     
@@ -152,16 +152,39 @@ private:
 };
 
 template <Color c> 
-bool Position::isSquareAttacked(Square sq) const {
+inline bool Position::isSquareAttacked(Square sq) const {
     if (sq == NO_SQ) return false;
     
-    Bitboard occupancy = occupancyAll;
+    //pawns attacks
+    Bitboard pawnAtks=Attacks::get_pawn_attacks(~c,sq);
+    if(pawnAtks & pawns<c>()) return true;
     
-    return (pawns<c>()                   & Attacks::get_pawn_attacks(~c,sq))         ||
-           (knights<c>()                 & Attacks::get_knight_attacks(sq))           ||
-           ((bishops<c>() | queens<c>()) & Attacks::get_bishop_attacks(sq, occupancy)) ||
-           ((rooks<c>() | queens<c>())   & Attacks::get_rook_attacks(sq, occupancy))   ||
-           (kings<c>()                   & Attacks::get_king_attacks(sq));
+    //knight attacks
+    Bitboard knightAtks = Attacks::get_knight_attacks(sq);
+    if (knightAtks & knights<c>()) return true;
+    
+    //king attacks
+    Bitboard kingAtks = Attacks::get_king_attacks(sq);
+    if (kingAtks & kings<c>()) return true;
+    
+    // slider attacks
+    Bitboard occ = occupancyAll;
+
+    //diagonal slider
+    Bitboard diagSliders = bishops<c>() | queens<c>();
+    if (diagSliders) {
+        if (Attacks::get_bishop_attacks(sq, occ) & diagSliders)
+            return true;
+    }
+    
+    //orthogonal slider
+    Bitboard orthSliders = rooks<c>() | queens<c>();
+    if (orthSliders) {
+        if (Attacks::get_rook_attacks(sq, occ) & orthSliders)
+            return true;
+    }
+    
+    return false;
 }
 
 template <Color c>

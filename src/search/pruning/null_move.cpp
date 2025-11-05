@@ -1,5 +1,5 @@
 #include "../search.h"
-
+/*
 namespace Search{
 
     /*****************************************************
@@ -10,7 +10,7 @@ namespace Search{
      *  prun this branch
      *****************************************************
      */
-
+    /*
     template <Color c>
     bool Searcher::tryNullMove(int alpha,int beta,int depth,int ply,int& score){
 
@@ -74,3 +74,4 @@ namespace Search{
     template bool Searcher::tryNullMove<White>(int, int, int, int, int&);
     template bool Searcher::tryNullMove<Black>(int, int, int, int, int&);
 }
+*/
