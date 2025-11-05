@@ -1,7 +1,7 @@
 #include "../search.h"
 #include <algorithm>
 #include <cmath>
-
+/*
 namespace Search{
 
     //LMR PRECOMPUTED TABLES
@@ -78,3 +78,4 @@ namespace Search{
         return true;
     }
 }
+*/

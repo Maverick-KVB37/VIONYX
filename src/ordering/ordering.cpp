@@ -132,9 +132,6 @@ bool MoveOrderer::seeGe(const Position& pos, Move move, int threshold) {
     return see(pos, move) >= threshold;
 }
 
-#include "ordering.h"
-#include <algorithm>
-
 void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2]) {
    // std::cerr << "DEBUG: scoreMoves entered, moves.size=" << moves.size() << "\n";
 
@@ -190,6 +187,7 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
             scores[maxIdx] = tempScore;
         }
     }
+    
     //std::cerr << "DEBUG: scoreMoves done\n";
 
 }

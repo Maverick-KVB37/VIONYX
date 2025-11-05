@@ -1,5 +1,5 @@
 #include "../search.h"
-
+/*
 namespace Search{
 
     /**
@@ -7,8 +7,7 @@ namespace Search{
      * At shallow depth if w ehave search so many moves,
      * then we can skip remaining quiet move.
      */
-
-    template <Color c>
+/*    template <Color c>
     bool Searcher::shouldPruneMove(int depth,int moveCount,bool inCheck,
                                    bool isCapture,bool isPromotion,bool givesCheck){
         if(depth>4) return false;
@@ -28,3 +27,4 @@ namespace Search{
     template bool Searcher::shouldPruneMove<White>(int,int,bool,bool,bool,bool);
     template bool Searcher::shouldPruneMove<Black>(int,int,bool,bool,bool,bool);
 }
+*/

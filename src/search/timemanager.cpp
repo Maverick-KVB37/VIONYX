@@ -35,6 +35,12 @@ void TimeManager::start(const Search::SearchLimits& limits,Color sideToMove, int
         return;
     }
 
+    //if a fixed depth is requested and no time control
+    if(limits.depth<128 && timeLeft<=0 && increment==0 && !limits.movetime && !limits.infinite){
+        timeForMove=InfiniteTime;
+        return;
+    }
+
     //time control
     if(timeLeft>0){
 
