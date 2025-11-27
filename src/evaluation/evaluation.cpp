@@ -11,7 +11,7 @@ namespace ASTROVE::eval {
         initialize(pos);
 
         evaluate_material_and_placement(pos);
-
+        evaluate_pawns(pos);
         Score result = calculate_final_score(pos);
         
         return result;
@@ -72,5 +72,69 @@ Score Evaluator::calculate_final_score(const Position& pos) const {
     Score result = (pos.sideToMove() == White) ? finalScore : -finalScore;
     
     return result;
+}
+
+//function for Evaluate Pawn
+void Evaluator::evaluate_pawns(const Position& pos){
+    Bitboard whitePawns = pos.pawns<White>();
+    Bitboard blackPawns =pos.pawns<Black>();
+
+    //define static so the it created only once
+    static const Bitboard ADJACENT_FILES[8]={
+        MASKFILE[1],
+        MASKFILE[0]|MASKFILE[2],
+        MASKFILE[1]|MASKFILE[3],
+        MASKFILE[2]|MASKFILE[4],
+        MASKFILE[3]|MASKFILE[5],
+        MASKFILE[4]|MASKFILE[6],
+        MASKFILE[5]|MASKFILE[7],
+        MASKFILE[6]
+    };
+    
+    //white pawns
+    Bitboard wp=whitePawns;
+    while(wp){
+        Square sq=poplsb(wp);
+        int f=fileof(sq);
+        int r=rankof(sq);
+
+        //isolated pawn
+        if((whitePawns & ADJACENT_FILES[f])==0){
+            evalData.add(ISOLATED_PAWN_PENALTY);
+        }
+
+        //double pawn
+        if((whitePawns&MASKFILE[f])^(1ULL<<sq)){
+            evalData.add(DOUBLED_PAWN_PENALTY);
+        }
+
+        //passed apwn
+        if((MASKPASSED[White][sq]&blackPawns)==0){
+            evalData.add(PASSED_PAWN_BONUS[r]);
+        }
+    }
+
+    //black pawn
+    Bitboard bp=blackPawns;
+    while(bp){
+        Square sq=poplsb(bp);
+        int f=fileof(sq);
+        int relative_rank=7-rankof(sq);
+
+        //isolated pawn
+        if((blackPawns & ADJACENT_FILES[f])==0){
+            evalData.add(-ISOLATED_PAWN_PENALTY);
+        }
+
+        //double pawn
+        if((blackPawns&MASKFILE[f])^(1ULL<<sq)){
+            evalData.add(-DOUBLED_PAWN_PENALTY);
+        }
+
+        //passed apwn
+        if((MASKPASSED[Black][sq]&whitePawns)==0){
+            evalData.add(-PASSED_PAWN_BONUS[relative_rank]);
+        }
+    }
 }
 }

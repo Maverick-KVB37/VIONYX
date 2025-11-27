@@ -12,7 +12,8 @@ namespace eval{
 
     // Compose a combined evaluation with opening and endgame parts
     constexpr EvalScore composeEval(Score opening, Score endgame) {
-        return static_cast<EvalScore>((static_cast<int32_t>(endgame) << 16) | static_cast<uint16_t>(opening));
+        return static_cast<EvalScore>(static_cast<uint32_t>(static_cast<uint16_t>(endgame)) << 16) |
+                                      (static_cast<uint16_t>(opening));
     }
 
     // Extract opening and endgame from combined EvalScore
@@ -34,6 +35,23 @@ namespace eval{
         composeEval(500, 500),   // Rook
         composeEval(900, 900),   // Queen
         composeEval(0,   0)      // King
+    };
+
+    //penalty for pawn
+    constexpr EvalScore ISOLATED_PAWN_PENALTY= composeEval(-15,-20);
+    constexpr EvalScore DOUBLED_PAWN_PENALTY=composeEval(-10,-20);
+    constexpr EvalScore BACKWARD_PAWN_PENALTY = composeEval(-10,-20);
+
+    // Bonuses (Passed pawns are deadly in endgame)
+    constexpr EvalScore PASSED_PAWN_BONUS[8] = {
+        composeEval(0, 0),     // Rank 1 (impossible)
+        composeEval(5, 10),    // Rank 2
+        composeEval(10, 20),   // Rank 3
+        composeEval(20, 40),   // Rank 4
+        composeEval(40, 70),   // Rank 5
+        composeEval(80, 140),  // Rank 6
+        composeEval(150, 240), // Rank 7
+        composeEval(0, 0)      // Rank 8 (promoted)
     };
 
     struct EvaluationData {
@@ -65,6 +83,7 @@ namespace eval{
 
         int calculate_game_phase(const Position& pos) const;
         Score calculate_final_score(const Position& pos) const;
+        void evaluate_pawns(const Position& pos);
     };
 
     // Global evaluator instance

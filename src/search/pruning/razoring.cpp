@@ -31,4 +31,5 @@ namespace Search{
     template int Searcher::tryRazoring<White>(int,int,int);
     template int Searcher::tryRazoring<Black>(int,int,int);
 }
+
 */

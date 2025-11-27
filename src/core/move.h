@@ -44,7 +44,13 @@ public:
     // Helpers
     constexpr bool is_capture() const { return (flag() &0x4)!=0; }
     constexpr bool is_promotion() const { return (flag() >= KnightPromotion); }
+    constexpr bool is_enpassant() const { return flag() == EnPassant; }
+    constexpr bool is_castle() const { return flag() == KingCastle || flag() == QueenCastle; }
 
+    //for comparing two moves
+    constexpr bool operator==(const Move& other) const { return m_data == other.m_data; }
+    constexpr bool operator!=(const Move& other) const { return m_data != other.m_data; }
+    
     // Utility
     std::string to_uci_string() const;
 
