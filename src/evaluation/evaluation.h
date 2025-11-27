@@ -27,6 +27,11 @@ namespace eval{
     // Evaluation constants
     constexpr EvalScore TEMPO_BONUS = composeEval(10, 10);
 
+    //penalty for pawn
+    constexpr EvalScore ISOLATED_PAWN_PENALTY= composeEval(-15,-20);
+    constexpr EvalScore DOUBLED_PAWN_PENALTY=composeEval(-10,-20);
+    constexpr EvalScore BACKWARD_PAWN_PENALTY = composeEval(-10,-20);
+
     // Base piece values (tapered)
     constexpr EvalScore PieceValues[6] = {
         composeEval(100, 100),   // Pawn
@@ -37,10 +42,6 @@ namespace eval{
         composeEval(0,   0)      // King
     };
 
-    //penalty for pawn
-    constexpr EvalScore ISOLATED_PAWN_PENALTY= composeEval(-15,-20);
-    constexpr EvalScore DOUBLED_PAWN_PENALTY=composeEval(-10,-20);
-    constexpr EvalScore BACKWARD_PAWN_PENALTY = composeEval(-10,-20);
 
     // Bonuses (Passed pawns are deadly in endgame)
     constexpr EvalScore PASSED_PAWN_BONUS[8] = {
@@ -52,6 +53,29 @@ namespace eval{
         composeEval(80, 140),  // Rank 6
         composeEval(150, 240), // Rank 7
         composeEval(0, 0)      // Rank 8 (promoted)
+    };
+
+    //MOBILITY TABLE----------
+    //for knight 0-8 moves
+    constexpr EvalScore MobilityBonus_Knight[9]={
+        composeEval(-20,-30),composeEval(-10,-10),composeEval(0,0),composeEval(5,5),
+        composeEval(10,10),composeEval(15,15),composeEval(20,20),composeEval(25,25),
+        composeEval(30,30)
+    };
+
+    //for bishop 0-13 moves
+    constexpr EvalScore MobilityBonus_Bishop[14]={
+        composeEval(-20,-30),composeEval(-10,-15),composeEval(0,-5),composeEval(5,0),
+        composeEval(10,5),composeEval(15,10),composeEval(20,15),composeEval(25,20),
+        composeEval(30,25),composeEval(35,30),composeEval(40,35),composeEval(45,40),
+        composeEval(50,45),composeEval(50,50)
+    };
+
+    //for rook 0-14 moves
+    constexpr EvalScore MobilityBonus_Rook[15]={
+        composeEval(-10,-20),composeEval(-5,-10),composeEval(0,0),composeEval(5,5),composeEval(10,10),
+        composeEval(15,15),composeEval(20,20),composeEval(25,25),composeEval(30,30),composeEval(35,35),
+        composeEval(40,40),composeEval(45,45),composeEval(50,50),composeEval(55,55),composeEval(60,60)
     };
 
     struct EvaluationData {
@@ -80,16 +104,17 @@ namespace eval{
 
         void initialize(const Position& pos);
         void evaluate_material_and_placement(const Position& pos);
+        void evaluate_pawns(const Position& pos);
+        void evaluate_mobility(const Position& pos);
+
 
         int calculate_game_phase(const Position& pos) const;
         Score calculate_final_score(const Position& pos) const;
-        void evaluate_pawns(const Position& pos);
     };
 
-    // Global evaluator instance
+    //global instance
     extern Evaluator board_evaluator;
 
-    // Helper function
     inline Score evaluate(const Position& pos) {
         return board_evaluator.evaluate_board(pos);
     }
