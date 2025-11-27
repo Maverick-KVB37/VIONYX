@@ -249,7 +249,7 @@ int Searcher::quiescence(int alpha, int beta, int ply) {
     bool inCheck = pos.inCheck<c>();
     
     // Stand pat (only if not in check)
-    int standPat = 0;
+    int standPat = -INFINITE;
     if (!inCheck) {
         standPat = eval.evaluate_board(pos);
         
@@ -266,47 +266,51 @@ int Searcher::quiescence(int alpha, int beta, int ply) {
         if (standPat + DELTA_MARGIN < alpha) {
             return alpha;
         }
+        
     }
 
     MoveList movelist;
     gen.generate_all_moves<c>(pos, movelist);
     if (movelist.empty()) {
-        return inCheck ? (-MATE_SCORE + ply) : 0;
+        return inCheck ? (-MATE_SCORE + ply) : 0; //CHECKMATE OR STALEMATE
     }
 
-    // Draw detection
-    if (pos.isDrawByFiftyMove() || pos.isDrawByRepetition(ply)) {
-        return 0;
-    }
-
+    //filter interserting moves
     MoveList interestingMoves;
     interestingMoves.reserve(movelist.size());
 
-    if (inCheck) {
-       interestingMoves = movelist;
-    } else {
-        for (const auto& move : movelist) {
-            if(move.is_capture()){
-                interestingMoves.push_back(move);
-            }
-            else if (move.is_promotion()){
+    if(inCheck){
+        interestingMoves=movelist;
+    }
+    else{
+        //only capture and promotion
+        for(const auto& move:movelist){
+            if(move.is_capture() ||move.is_promotion()){
                 interestingMoves.push_back(move);
             }
         }
-    }
+    }   
 
-    // If no tactical moves and not in check, return stand pat
-    if (!inCheck && interestingMoves.empty()) {
+    if(interestingMoves.empty()){
         return alpha;
     }
 
-        // Search all interesting moves
-    int legalMoves = 0;
-    for (const Move& move : interestingMoves) {
+    //sort only the interesting move
+    if(inCheck){
+        Move ttMove=NO_MOVE;
+        orderer.scoreMoves(pos,interestingMoves,ttMove,stack[ply].killers);
+    }
+    else{
+        orderer.scoreCaptures(pos,interestingMoves);
+    }
+
+    //now iterate
+    int legalMoves=0;
+    for(const Move& move:interestingMoves){
         // Make the move
         pos.makemove<c>(move);
         
-        // CRITICAL: Check if move is legal (doesn't leave king in check)
+        // check if move is legal (doesn't leave king in check)
         if (pos.inCheck<c>()) {
             pos.unmakemove<c>(move);
             continue;
@@ -319,6 +323,8 @@ int Searcher::quiescence(int alpha, int beta, int ply) {
         
         // Unmake the move
         pos.unmakemove<c>(move);
+
+        //if(stopFlag) return 0;
 
         // Beta cutoff
         if (score >= beta) {
