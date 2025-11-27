@@ -3,7 +3,13 @@
 #include <cstring>
 #include <algorithm>
 
-
+MoveOrderer::MoveOrderer(){
+    for(int attacker=Pawn;attacker<=King;++attacker){
+        for(int victim=Pawn;victim<=King;++victim){
+            mvv_lva[attacker][victim]=SEEVALUE[victim]+6-(SEEVALUE[attacker]/100);
+        }
+    }
+}
 // Returns the bitboard of attackers of given color on square `sq`
 Bitboard MoveOrderer::attackersForSide(const Position& pos, Color attackerColor, Square sq, Bitboard occupiedBB) {
     Bitboard attackingBishops = pos.getPiecesBB(makepiece(attackerColor, Bishop));
@@ -142,49 +148,53 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
 
         const Move& move = moves[i];
-        int score = 0;
-        
-        if (move.from() == ttMove.from() && move.to() == ttMove.to()) {
-            score = 100000;
-        } else if (move.from() == killers[0].from() && move.to() == killers[0].to()) {
-            score = 90000;
-        } else if (move.from() == killers[1].from() && move.to() == killers[1].to()) {
-            score = 80000;
-        } else if (move.is_capture()) {
-            //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
-            score = see(pos, move) + 10000;
-            //std::cerr << "DEBUG: see returned score=" << score << "\n";
-        } else {
-            score = 0;
+        //int score = 0;
+        //TT move
+        if(move==ttMove){
+            scores[i]=SCORE_TT_MOVE;
         }
         
-        scores[i] = score;
-    }
-    /*
-    std::sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {
-        size_t i = &a - &moves[0];
-        size_t j = &b - &moves[0];
-        return scores[i] > scores[j];
-    });
-    */
-    
-    size_t n = moves.size();
-    for (size_t i = 0; i < n && i < 256; i++) {  // Add safety limit
-        size_t maxIdx = i;
-        for (size_t j = i + 1; j < n && j < 256; j++) {  // Add safety limit
-            if (scores[j] > scores[maxIdx]) {
-                maxIdx = j;
+        //Captures
+        else if(move.is_capture()){
+            PieceType attacker = piecetype(pos.pieceAt(move.from()));
+            PieceType victim = piecetype(pos.pieceAt(move.to()));
+
+            //enpassant
+            if(move.is_enpassant()){
+                victim=Pawn;
+            }
+            if(victim!=Nonetype){
+                scores[i]=SCORE_CAPTURE_BASE+mvv_lva[attacker][victim];
+            }
+            else{
+                scores[i]=SCORE_CAPTURE_BASE;
             }
         }
-        if (maxIdx != i) {
-            // Safe swap
-            Move tempMove = moves[i];
-            moves[i] = moves[maxIdx];
-            moves[maxIdx] = tempMove;
-            
-            int tempScore = scores[i];
-            scores[i] = scores[maxIdx];
-            scores[maxIdx] = tempScore;
+
+        //killer movews
+        else if(move==killers[0]){
+            scores[i]=SCORE_KILLER_1;
+        }
+        else if(move==killers[2]){
+            scores[i]=SCORE_KILLER_2;
+        }
+
+        //quiet move
+        else {
+            scores[i]=0;
+        }
+    }
+    
+    for (size_t i = 0; i < moves.size(); ++i) {  // Add safety limit
+        size_t bestIdx = i;
+        for (size_t j = i + 1; j < moves.size(); ++j) {  // Add safety limit
+            if (scores[j] > scores[bestIdx]) {
+                bestIdx = j;
+            }
+        }
+        if (bestIdx != i) {
+            std::swap(moves[i], moves[bestIdx]);
+            std::swap(scores[i], scores[bestIdx]);
         }
     }
     
@@ -202,12 +212,16 @@ void MoveOrderer::scoreCaptures(const Position& pos, MoveList& captures) {
     }
     
     // Sort captures by SEE value
-    for (size_t i = 0; i < captures.size(); i++) {
-        for (size_t j = i + 1; j < captures.size(); j++) {
-            if (scores[j] > scores[i]) {
-                std::swap(captures[i], captures[j]);
-                std::swap(scores[i], scores[j]);
+    for (size_t i = 0; i < captures.size(); ++i) {
+        size_t bestIdx=i;
+        for (size_t j = i + 1; j < captures.size(); ++j) {
+            if (scores[j] > scores[bestIdx]) {
+                bestIdx=j;
             }
+        }
+        if(bestIdx!=i){
+            std::swap(captures[i], captures[bestIdx]);
+            std::swap(scores[i], scores[bestIdx]);
         }
     }
 }

@@ -3,10 +3,11 @@
 #include "../core/move.h"
 #include "../board/position.h"
 #include "../board/movegen.h"
+#include <vector>
 
 class MoveOrderer {
 public:
-    MoveOrderer() = default;
+    MoveOrderer();
 
     // Score quiet and non-capture moves for ordering
     void scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2]);
@@ -22,11 +23,18 @@ public:
     // Storage for scores during sorting
     std::vector<int> scores;
 private:
-    static constexpr int SEEVALUE[6] = {100, 300, 300, 500, 900, 50000};
+    static constexpr int SEEVALUE[6] = {100, 325, 335, 500, 975, 0};
 
     Bitboard minAttacker(const Position& pos, Bitboard attadef, Color color, PieceType& attacker);
     Bitboard considerXRays(const Position& pos, Square sq, Bitboard occupiedBB);
     Bitboard allAttackers(const Position& pos, Square sq, Bitboard occupiedBB);
     Bitboard attackersForSide(const Position& pos, Color attackerColor, Square sq, Bitboard occupiedBB);
 
+    //MVV-LVA Table [Attacker][Victim]
+    int mvv_lva[6][6];
+    //consatnts
+    static constexpr int SCORE_TT_MOVE=30000;
+    static constexpr int SCORE_CAPTURE_BASE=20000;
+    static constexpr int SCORE_KILLER_1=19000;
+    static constexpr int SCORE_KILLER_2=18000;
 };
