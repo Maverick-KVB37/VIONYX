@@ -97,7 +97,7 @@ public:
 
     //unmake null move
     template <Color c>
-    inline void unmakeNullMove(Square sq,uint8_t halfMove,uint16_t fullMove);
+    inline void unmakeNullMove();
 
     // getter for NMP
     inline uint8_t getHalfMoveClock() const { return state->halfMoveClock; }
@@ -546,42 +546,50 @@ inline bool Position::isDrawByFiftyMove() const {
 
 template <Color c>
 inline void Position::makeNullMove(){
-        if(state->enpassantSquare!=NO_SQ){
-            toggleEnpassant(state->enpassantSquare);
-        }
+    if(stateCount>=1023) return;
 
+    StateInfo* newState=&stateStack[stateCount++];
+    *newState=*state;
+    newState->previous=state;
+    state=newState;
+
+    state->checkers = 0ULL;
+    state->pinMaskHV = 0ULL;
+    state->pinMaskD = 0ULL;
+
+    if(state->enpassantSquare!=NO_SQ){
+        toggleEnpassant(state->enpassantSquare);
         state->enpassantSquare=NO_SQ;
+    }
 
-        state->halfMoveClock++;
-        if(c==Black){
-            fullMoveCounter++;
-        }
+    state->halfMoveClock++;
+    if(c==Black){
+        fullMoveCounter++;
+    }
 
-        //switch side to move and toggle in hash
-        stm=~c;
-        toggleSide();
+    //switch side to move and toggle in hash
+    stm=~c;
+    toggleSide();
 
-        positionHistory.push_back(hash());
+    positionHistory.push_back(state->hashKey);
 }
 
 template <Color c>
-inline void Position::unmakeNullMove(Square ep,uint8_t halfMove,uint16_t fullmove){
+inline void Position::unmakeNullMove(){
+
     if(!positionHistory.empty()){
         positionHistory.pop_back();
     }
+    
+    if (state->previous == nullptr) return;
+
+    state = state->previous;
+    stateCount--;
 
     stm=c;
-    toggleSide();
 
     if(c==Black){
-        fullMoveCounter=fullmove;
-    }
-
-    state->halfMoveClock=halfMove;
-
-    state->enpassantSquare=ep;
-
-    if(ep!=NO_SQ){
-        toggleEnpassant(ep);
+        fullMoveCounter--;
     }
 }
+

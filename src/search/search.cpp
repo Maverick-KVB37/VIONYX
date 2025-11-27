@@ -159,10 +159,47 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
     if (stopFlag) return 0;
     // Transposition Table probe
     int ttScore;
-    Move ttMove;
+    Move ttMove=NO_MOVE;
     if (tt.probe(pos.hash(), depth, alpha, beta, ttScore, ttMove, ply)){
-        return ttScore;
+        //we onlt use tt score to cut off when we are not in a pv node
+        if(!PvNode){
+            return ttScore;
+        }
     }
+    
+    bool inCheck=pos.inCheck<c>();
+    //static evaluation
+    int staticEval=0;
+    if(!inCheck){
+        staticEval=eval.evaluate_board(pos);
+        stack[ply].staticEval=staticEval;
+    }
+    
+    //======================= NMP =============================
+    //so if we pass and still win then we can beat easily
+    if(!PvNode && depth>=3 && !inCheck && ply>0 && staticEval>=beta && pos.hasNonPawnMaterial<c>()){
+        //reduction
+        int R=3+(depth/6);
+        //if we win more then reduce more
+        if(staticEval>=beta+200) R++;
+
+        //also we have ensure that depth do not drop to 0
+        if(depth-R-1>0){
+            pos.makeNullMove<c>();
+
+            int score=-pvs<~c,false>(depth-R-1,ply+1,-beta,-beta+1,!cutNode);
+
+            pos.unmakeNullMove<c>();
+            if(stopFlag) return 0;
+            if(score>=beta){
+                if(score>MATE_SCORE-MAX_PLY){
+                    score=beta;
+                }
+                return score;
+            }
+        }
+    }
+    
     // Move generation
     MoveList moves;
     gen.generate_all_moves<c>(pos, moves);
