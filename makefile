@@ -21,7 +21,7 @@ BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVENMP
+TARGET := $(BIN_DIR)/ASTROVELMR
 
 all: $(TARGET)
 

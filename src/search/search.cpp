@@ -222,13 +222,37 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
 
         legalMoves++;
 
+        bool givesCheck= pos.inCheck<~c>();
+
         int score;
-        if (legalMoves==1) {
-            score = -pvs<~c, PvNode>(depth - 1, ply + 1, -beta, -alpha, false);
-        } else {
-            score = -pvs<~c, false>(depth - 1, ply + 1, -alpha - 1, -alpha, true);
-            if (score > alpha && score < beta){
+        bool needfullsearch=true;
+
+        // ============================ LMR =========================
+        if(depth>=3 && legalMoves>4 && !PvNode && !inCheck && !move.is_capture() && !move.is_promotion() && !givesCheck){
+            int R=1+(depth/6);
+            if(legalMoves>10) R++;
+            //also don`t reduce when depth<1
+            int reduceddepth=std::max(1,depth-1-R);
+
+            //now search with LMR
+            score=-pvs<~c,false>(reduceddepth,ply+1,-alpha-1,-alpha,true);
+            //so now check if score>alpha then our reuction is wrong and move is good
+            if(score>alpha){
+                needfullsearch=true;
+            }
+            else{
+                needfullsearch=false;
+            }
+        }
+        //now full depth
+        if(needfullsearch){
+            if (legalMoves==1) {
                 score = -pvs<~c, PvNode>(depth - 1, ply + 1, -beta, -alpha, false);
+            } else {
+                score = -pvs<~c, false>(depth - 1, ply + 1, -alpha - 1, -alpha, true);
+                if (score > alpha && score < beta){
+                    score = -pvs<~c, PvNode>(depth - 1, ply + 1, -beta, -alpha, false);
+                }
             }
         }
 
