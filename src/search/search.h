@@ -167,32 +167,19 @@ private:
 
     //functions for draw(for repetition,50-move rule)
     bool is_draw(int ply) const;
-    //converts score for transposition table
-    int score_to_tt(int score, int ply) const;
-    int score_from_tt(int score, int ply) const;
 
-    // Null Move Pruning
-    template <Color c>
-    bool tryNullMove(int alpha,int beta,int depth,int ply,int& score);
-
-    template <Color c>
-    bool tryReverseFutility(int beta, int depth, int ply, int& score);
-
-    template <Color c>
-    bool shouldPruneMove(int depth,int moveCount,bool inCheck,
-                                     bool isCapture,bool isPromotion,bool givesCheck);
+    //for history heuristics
+    int history[2][64][64];  //[color][fromsqu][tosqu]
+    void clearHistory(){
+        for(int c=0;c<2;++c){
+            for(int f=0;f<64;++f){
+                for(int t=0;t<64;t++){
+                    history[c][f][t]=0;
+                }
+            }
+        }
+    }
     
-    template <Color c>
-    int tryRazoring(int alpha, int depth, int ply);
-
-    template <Color c>
-    bool canFutilityPrune(int alpha,int depth,int staticEval,
-                                      bool isCapture,bool isPromotion,bool givesCheck);
-    
-    void initLMR();
-    int getLMRReduction(int depth, int moveCount, bool isPV, bool improving);
-    bool shouldReduceMove(int depth, int legalMoves, bool inCheck,
-                          bool isCapture, bool isPromotion);
     // --- DATA MEMBERS ---
     Position& pos;
     TranspositionTable& tt;

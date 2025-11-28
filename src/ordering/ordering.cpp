@@ -138,7 +138,7 @@ bool MoveOrderer::seeGe(const Position& pos, Move move, int threshold) {
     return see(pos, move) >= threshold;
 }
 
-void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2]) {
+void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2],const int history[2][64][64]) {
    // std::cerr << "DEBUG: scoreMoves entered, moves.size=" << moves.size() << "\n";
 
     scores.clear();
@@ -148,7 +148,7 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
 
         const Move& move = moves[i];
-        //int score = 0;
+        
         //TT move
         if(move==ttMove){
             scores[i]=SCORE_TT_MOVE;
@@ -175,13 +175,17 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         else if(move==killers[0]){
             scores[i]=SCORE_KILLER_1;
         }
-        else if(move==killers[2]){
+        else if(move==killers[1]){
             scores[i]=SCORE_KILLER_2;
         }
 
-        //quiet move
+        //now histroy heuristics
         else {
-            scores[i]=0;
+            int side=pos.sideToMove();
+            int hscore=history[side][move.from()][move.to()];
+            //just ensuring that hscore can not exceed killer moves
+            if(hscore>16000) hscore=16000;
+            scores[i]=hscore;
         }
     }
     

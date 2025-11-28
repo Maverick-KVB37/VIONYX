@@ -103,24 +103,51 @@ Move Searcher::think(const SearchLimits& limits) {
 
 void Searcher::iterative_deepening() {
     Move bestMoveFound = NO_MOVE;
+    int score=0;
 
     for (int depth = 1; depth <= limits.depth; ++depth) {
         if (stopFlag && depth>1) break;
-        stack[0].pv.clear();
-        int score;
-        if (pos.sideToMove() == White) {
-            score = pvs<White, true>(depth, 0, -INFINITE, INFINITE, false);
-        } else {
-            score = pvs<Black, true>(depth, 0, -INFINITE, INFINITE, false);
-        }
         
-        // check hard time
-        if(depth>1){
-            check_time();
-            if (stopFlag) break;
+        //ASPIRATION WINDOW
+        int alpha=-INFINITE;
+        int beta=INFINITE;
+        int delta=50; //window size
+
+        if(depth>4){
+            alpha=std::max(-INFINITE,score-delta);
+            beta=std::min(INFINITE,score+delta);
+        }
+        while(true){
+            stack[0].pv.clear();
+
+            if (pos.sideToMove() == White) {
+                score = pvs<White, true>(depth, 0, -INFINITE, INFINITE, false);
+            } else {
+                score = pvs<Black, true>(depth, 0, -INFINITE, INFINITE, false);
+            }
+        
+            // check hard time
+            if(depth>1){
+                check_time();
+                if (stopFlag) break;
+            }
+
+            //if score<alpha means position is worse
+            if(score<=alpha){
+                alpha=-INFINITE;
+                continue;
+            }
+            //if score>beta means position is good
+            if(score>=beta){
+                beta=INFINITE;
+                continue;
+            }
+            break;
         }
 
-        // Add bounds check before copying!
+        if(stopFlag) break;
+
+        // update pv and output it we finish search properly
         if (stack[0].pv.length < MAX_PLY && stack[0].pv.length > 0) {
             info.pv = stack[0].pv;
             bestMoveFound = stack[0].pv.moves[0];
@@ -167,12 +194,23 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
         }
     }
     
+
     bool inCheck=pos.inCheck<c>();
     //static evaluation
     int staticEval=0;
     if(!inCheck){
         staticEval=eval.evaluate_board(pos);
         stack[ply].staticEval=staticEval;
+    }
+
+    //=================== RFP ==================
+    // so if we winning by a lot (eval-margin>beta) we assume that we win without needing to search further
+    if(!PvNode&& !inCheck && depth<=8 && pos.hasNonPawnMaterial<c>() && abs(beta)<MATE_SCORE-100){
+        //we set margin roughly as pawn per depth
+        int margin=120*depth;
+        if(staticEval-margin>=beta){
+            return beta;
+        }
     }
     
     //======================= NMP =============================
@@ -199,14 +237,25 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
             }
         }
     }
-    
+
+    //================= FP ==================
+    //so if a position is bad (eval+margin<alpha) quiet moves can`t save us
+    bool futilityprun=false;
+    if(depth<=4&&!inCheck&&!PvNode&& abs(alpha)<MATE_SCORE-100 && abs(beta)<MATE_SCORE-100){
+        //so margin if we improve by 1.5 pawns per depth
+        int margin=depth*150;
+        if(staticEval+margin<=alpha){
+            futilityprun=true;
+        }
+    }
+
     // Move generation
     MoveList moves;
     gen.generate_all_moves<c>(pos, moves);
     if (moves.empty())
         return pos.inCheck<c>() ? -MATE_SCORE + ply : 0;
 
-    orderer.scoreMoves(pos, moves, ttMove, stack[ply].killers);
+    orderer.scoreMoves(pos, moves, ttMove, stack[ply].killers,history);
 
     Move bestMove = NO_MOVE;
     int bestScore = -INFINITE;
@@ -223,6 +272,10 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
         legalMoves++;
 
         bool givesCheck= pos.inCheck<~c>();
+        if(futilityprun&&legalMoves>0&&!move.is_capture() && !move.is_promotion() && !givesCheck){
+            pos.unmakemove<c>(move);
+            continue;
+        }
 
         int score;
         bool needfullsearch=true;
@@ -271,6 +324,16 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
                     if (!move.is_capture() && ply < MAX_PLY) {
                         stack[ply].killers[1] = stack[ply].killers[0];
                         stack[ply].killers[0] = move;
+
+                        //now bonus calcu deeper searches means more realiable
+                        int bonus=depth*depth;
+                        int side=pos.sideToMove();
+                        history[side][move.from()][move.to()]+=bonus;
+
+                        //also we have to cap at 16000(killer move)
+                        if(history[side][move.from()][move.to()]>16000){
+                            history[side][move.from()][move.to()]=16000;
+                        }
                     }
                     break; // beta cutoff
                 }
@@ -359,7 +422,7 @@ int Searcher::quiescence(int alpha, int beta, int ply) {
     //sort only the interesting move
     if(inCheck){
         Move ttMove=NO_MOVE;
-        orderer.scoreMoves(pos,interestingMoves,ttMove,stack[ply].killers);
+        orderer.scoreMoves(pos,interestingMoves,ttMove,stack[ply].killers,history);
     }
     else{
         orderer.scoreCaptures(pos,interestingMoves);
@@ -437,6 +500,7 @@ void Searcher::newGame() {
     nodes = 0;
     selDepth = 0;
     stopFlag = false;
+    clearHistory();
     for (int i = 0; i < MAX_PLY + 10; i++) {
         stack[i].clear();
     }
