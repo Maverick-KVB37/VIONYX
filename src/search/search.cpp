@@ -171,6 +171,9 @@ void Searcher::iterative_deepening() {
 
 template <Color c, bool PvNode>
 int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
+    if(ply<MAX_PLY){
+        stack[ply].pv.length=0;
+    }
     
     if (ply >= MAX_PLY) {
         return eval.evaluate_board(pos);
