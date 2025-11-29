@@ -21,7 +21,7 @@ BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVECM
+TARGET := $(BIN_DIR)/ASTROVEKS
 
 all: $(TARGET)
 

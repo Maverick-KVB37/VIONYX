@@ -9,17 +9,18 @@ ASTROVE is a chess engine implementing bitboard-based move generation, principal
 
 ## Strength
 
-Estimated Rating:  **~1864 Elo**
+Estimated Rating:  **~1891 Elo**
 
 ## Match Results vs Stockfish 1800 elo
 ```
 
-Score of ASTROVECM vs Stockfish1800: 100 - 64 - 36  [0.590] 200
-...      ASTROVECM playing White: 54 - 28 - 18  [0.630] 100
-...      ASTROVECM playing Black: 46 - 36 - 18  [0.550] 100
-...      White vs Black: 90 - 74 - 36  [0.540] 200
-Elo difference: 63.2 +/- 44.4, LOS: 99.8 %, DrawRatio: 18.0 %
+Score of ASTROVEKS vs Stockfish1800: 113 - 62 - 25  [0.627] 200
+...      ASTROVEKS playing White: 59 - 32 - 9  [0.635] 100
+...      ASTROVEKS playing Black: 54 - 30 - 16  [0.620] 100
+...      White vs Black: 89 - 86 - 25  [0.507] 200
+Elo difference: 90.6 +/- 46.6, LOS: 100.0 %, DrawRatio: 12.5 %
 SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
 
 ```
 

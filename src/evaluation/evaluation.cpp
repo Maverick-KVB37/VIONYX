@@ -14,6 +14,9 @@ namespace ASTROVE::eval {
         evaluate_material_and_placement(pos);
         evaluate_pawns(pos);
         evaluate_mobility(pos);
+        evaluate_king_safety(pos);
+        evaluate_rook(pos);
+
         Score result = calculate_final_score(pos);
         
         return result;
@@ -22,24 +25,6 @@ namespace ASTROVE::eval {
     void Evaluator::initialize(const Position& pos) {
         evalData = EvaluationData{};
     }
-    /*
-    void Evaluator::evaluate_material_and_placement(const Position& pos) {
-    for (Square sq = SQ_A1; sq <= SQ_H8; sq = Square(sq + 1)) {
-        Piece piece = pos.pieceAt(sq);
-        if (piece == None) continue;
-        
-        Color c = piececolor(piece);
-        PieceType pt = piecetype(piece);
-        
-        if (pt == King) continue;  // Don't evaluate king material
-        
-        EvalScore materialVal = PieceValues[pt];
-        EvalScore psqtVal = PSQT[pt][c][sq];
-        
-        evalData.add((c == White) ? (materialVal + psqtVal) : -(materialVal + psqtVal));
-    }
-    }
-    */
     void Evaluator::evaluate_material_and_placement(const Position& pos){
         for(PieceType pt=Pawn;pt<=King;pt=PieceType(pt+1)){
             //so white pieces
@@ -184,6 +169,110 @@ namespace ASTROVE::eval {
             attacks&=~pos.occupancy(Black);
             int count=popcount(attacks);
             evalData.add(-MobilityBonus_Rook[std::min(count,14)]);
+        }
+    }
+
+    //king safety pawn shield
+    void Evaluator::evaluate_king_safety(const Position& pos){
+        //white king
+        Square ksq=pos.kingsq<White>();
+        int kfile=fileof(ksq);
+        int krank=rankof(ksq);
+        //only evaluate for rank<=2
+        if(krank<=RANK_2){
+            if(kfile>=FILE_F){
+                //check pawn on F,G,H
+                for(int f=FILE_F;f<=FILE_H;++f){
+                    Bitboard fileMask=MASKFILE[f];
+                    //check friendly pawn
+                    if(!(pos.pawns<White>()&fileMask)){
+                        evalData.add(-KING_OPEN_FILE_PENALTY);
+                    }
+                    else if(!(pos.pawns<White>() & fileMask & (MASKRANK[RANK_2] | MASKRANK[RANK_3]))){
+                        evalData.add(-KING_PAWN_SHIELD_PENALTY);
+                    }
+                }
+            }
+            else if(kfile<=FILE_C){
+                //check pawn on A,B,C
+                for(int f=FILE_A;f<=FILE_C;++f){
+                    Bitboard fileMask=MASKFILE[f];
+                    //check friendly pawn
+                    if(!(pos.pawns<White>()&fileMask)){
+                        evalData.add(-KING_OPEN_FILE_PENALTY);
+                    }
+                    else if(!(pos.pawns<White>() & fileMask & (MASKRANK[RANK_2] | MASKRANK[RANK_3]))){
+                        evalData.add(-KING_PAWN_SHIELD_PENALTY);
+                    }
+                }
+            }
+        }
+
+        //now we do for blck king
+        ksq=pos.kingsq<Black>();
+        kfile=fileof(ksq);
+        krank=rankof(ksq);
+        if(krank>=RANK_7){
+            if(kfile>=FILE_F){
+                //check pawn on F,G,H
+                for(int f=FILE_F;f<=FILE_H;++f){
+                    Bitboard fileMask=MASKFILE[f];
+                    //check friendly pawn
+                    if(!(pos.pawns<Black>()&fileMask)){
+                        evalData.add(KING_OPEN_FILE_PENALTY);
+                    }
+                    else if(!(pos.pawns<Black>() & fileMask & (MASKRANK[RANK_7] | MASKRANK[RANK_6]))){
+                        evalData.add(KING_PAWN_SHIELD_PENALTY);
+                    }
+                }
+            }
+            else if(kfile<=FILE_C){
+                //check pawn on A,B,C
+                for(int f=FILE_A;f<=FILE_C;++f){
+                    Bitboard fileMask=MASKFILE[f];
+                    //check friendly pawn
+                    if(!(pos.pawns<Black>()&fileMask)){
+                        evalData.add(KING_OPEN_FILE_PENALTY);
+                    }
+                    else if(!(pos.pawns<Black>() & fileMask & (MASKRANK[RANK_6] | MASKRANK[RANK_7]))){
+                        evalData.add(KING_PAWN_SHIELD_PENALTY);
+                    }
+                }
+            }
+        }
+    }
+
+    void Evaluator::evaluate_rook(const Position& pos) {
+        //white rook
+        Bitboard wrook=pos.rooks<White>();
+        while(wrook){
+            Square sq=poplsb(wrook);
+            int f=fileof(sq);
+            Bitboard fileMask=MASKFILE[f];
+
+            if (!(pos.pawns<White>()&fileMask)){
+                if (!(pos.pawns<Black>() & fileMask)) {
+                    evalData.add(ROOK_OPEN_FILE_BONUS);
+                } else {
+                    evalData.add(ROOK_SEMI_OPEN_FILE_BONUS);
+                }
+            }
+        }
+
+        // black rook
+        Bitboard brook=pos.rooks<Black>();
+        while(brook){
+            Square sq=poplsb(brook);
+            int f=fileof(sq);
+            Bitboard fileMask=MASKFILE[f];
+
+            if (!(pos.pawns<Black>()&fileMask)) {
+                if (!(pos.pawns<White>() & fileMask)) {
+                    evalData.add(-ROOK_OPEN_FILE_BONUS);
+                } else {
+                    evalData.add(-ROOK_SEMI_OPEN_FILE_BONUS);
+                }
+            }
         }
     }
 

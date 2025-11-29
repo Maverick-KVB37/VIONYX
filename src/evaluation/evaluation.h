@@ -32,6 +32,14 @@ namespace eval{
     constexpr EvalScore DOUBLED_PAWN_PENALTY=composeEval(-10,-20);
     constexpr EvalScore BACKWARD_PAWN_PENALTY = composeEval(-10,-20);
 
+    //king safety
+    constexpr int KING_PAWN_SHIELD_PENALTY=10;
+    constexpr int KING_OPEN_FILE_PENALTY=25;
+
+    //rook on open file
+    constexpr int ROOK_OPEN_FILE_BONUS=20;
+    constexpr int ROOK_SEMI_OPEN_FILE_BONUS=10;
+
     // Base piece values (tapered)
     constexpr EvalScore PieceValues[6] = {
         composeEval(100, 100),   // Pawn
@@ -106,7 +114,8 @@ namespace eval{
         void evaluate_material_and_placement(const Position& pos);
         void evaluate_pawns(const Position& pos);
         void evaluate_mobility(const Position& pos);
-
+        void evaluate_king_safety(const Position& pos);
+        void evaluate_rook(const Position& pos);
 
         int calculate_game_phase(const Position& pos) const;
         Score calculate_final_score(const Position& pos) const;
