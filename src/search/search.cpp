@@ -205,6 +205,19 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
         extension=1;
     }
 
+    //IID(INTERNAL ITERATIVE DEEPENING)
+    if(PvNode && depth>3 && ttMove==NO_MOVE && !inCheck){
+        //so search shallow to find move
+        int iidDepth=depth-2;
+        pvs<c,PvNode>(iidDepth,ply,alpha,beta,false,previousMove);
+
+        Move iidMove=NO_MOVE;
+        int iidScore=0;
+        if(tt.probe(pos.hash(),depth,alpha,beta,iidScore,iidMove,ply)){
+            // so we found move and can use it as ordering
+            ttMove=iidMove;
+        }
+    }
     //static evaluation
     int staticEval=0;
     if(!inCheck){
@@ -270,7 +283,19 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
     int bestScore = -INFINITE;
     int legalMoves = 0;
     
+    //lmp counter for quiet move
+    int quietmovesearched=0;
+
     for (const Move move : moves) {
+
+        //============== LMP ===============
+        if(!PvNode && !inCheck && depth<8 && move.is_capture() && !move.is_promotion()){
+            int lmpthre=3+depth*depth;
+            if(quietmovesearched>=lmpthre){
+                continue; //skip the move
+            }
+        }
+
         pos.makemove<c>(move);
 
          if (pos.inCheck<c>()) {
@@ -279,7 +304,12 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
         }
 
         legalMoves++;
-
+        
+        //now we have to increment quiet move
+        if(!move.is_capture() && !move.is_promotion()){
+            quietmovesearched++;
+        }
+        
         bool givesCheck= pos.inCheck<~c>();
         if(futilityprun&&legalMoves>0&&!move.is_capture() && !move.is_promotion() && !givesCheck){
             pos.unmakemove<c>(move);

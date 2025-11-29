@@ -21,6 +21,13 @@ Score of ASTROVEKS vs Stockfish1800: 113 - 62 - 25  [0.627] 200
 Elo difference: 90.6 +/- 46.6, LOS: 100.0 %, DrawRatio: 12.5 %
 SPRT: llr 0 (0.0%), lbound -inf, ubound inf
 
+Score of ASTROVEIID vs ASTROVELMP: 15 - 11 - 74  [0.520] 100
+...      ASTROVEIID playing White: 4 - 5 - 41  [0.490] 50
+...      ASTROVEIID playing Black: 11 - 6 - 33  [0.550] 50
+...      White vs Black: 10 - 16 - 74  [0.470] 100
+Elo difference: 13.9 +/- 34.7, LOS: 78.4 %, DrawRatio: 74.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
 
 ```
 
