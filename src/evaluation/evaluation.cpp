@@ -16,6 +16,7 @@ namespace ASTROVE::eval {
         evaluate_mobility(pos);
         evaluate_king_safety(pos);
         evaluate_rook(pos);
+        evaluate_piece_structur(pos);
 
         Score result = calculate_final_score(pos);
         
@@ -276,6 +277,48 @@ namespace ASTROVE::eval {
         }
     }
 
+    //ouposts
+    void Evaluator::evaluate_piece_structur(const Position& pos){
+        //bishop pair
+        if(popcount(pos.bishops<White>())>=2){
+            evalData.add(BISHOP_PAIR_BONUS);
+        }
+
+        if(popcount(pos.bishops<Black>())>=2){
+            evalData.add(-BISHOP_PAIR_BONUS);
+        }
+        
+        //knight outpost
+        Bitboard wknight=pos.knights<White>();
+        Bitboard wpawns=pos.pawns<White>();
+        while(wknight){
+            Square sq=poplsb(wknight);
+            int r=rankof(sq);
+
+            //so we check outpost on rank3 to6
+            if(r>=RANK_3 && r<=RANK_6){
+                if(Attacks::get_pawn_attacks(Black,sq)& wpawns){
+                    //means it`s supported by pawn
+                    evalData.add(KNIGHT_OUTPOST_BONUS[r]);
+                }
+            }
+        }
+
+        Bitboard bknight=pos.knights<Black>();
+        Bitboard bpawns=pos.pawns<Black>();
+        while(bknight){
+            Square sq=poplsb(bknight);
+            int rr=7-rankof(sq);
+
+            //so we check outpost on rank3 to6
+            if(rr>=RANK_3 && rr<=RANK_6){
+                if(Attacks::get_pawn_attacks(White,sq)& bpawns){
+                    //means it`s supported by pawn
+                    evalData.add(-KNIGHT_OUTPOST_BONUS[rr]);
+                }
+            }
+        }
+    }
     int Evaluator::calculate_game_phase(const Position& pos) const {
     
         int phase = 0;

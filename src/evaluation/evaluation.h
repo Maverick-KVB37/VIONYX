@@ -40,6 +40,10 @@ namespace eval{
     constexpr int ROOK_OPEN_FILE_BONUS=20;
     constexpr int ROOK_SEMI_OPEN_FILE_BONUS=10;
 
+    //outpost const
+    constexpr int BISHOP_PAIR_BONUS=30;
+    constexpr int KNIGHT_OUTPOST_BONUS[8]={0,0,10,30,40,30,10,0};
+
     // Base piece values (tapered)
     constexpr EvalScore PieceValues[6] = {
         composeEval(100, 100),   // Pawn
@@ -116,6 +120,7 @@ namespace eval{
         void evaluate_mobility(const Position& pos);
         void evaluate_king_safety(const Position& pos);
         void evaluate_rook(const Position& pos);
+        void evaluate_piece_structur(const Position& pos);
 
         int calculate_game_phase(const Position& pos) const;
         Score calculate_final_score(const Position& pos) const;

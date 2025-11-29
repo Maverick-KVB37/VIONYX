@@ -14,19 +14,20 @@ Estimated Rating:  **~1891 Elo**
 ## Match Results vs Stockfish 1800 elo
 ```
 
-Score of ASTROVEKS vs Stockfish1800: 113 - 62 - 25  [0.627] 200
-...      ASTROVEKS playing White: 59 - 32 - 9  [0.635] 100
-...      ASTROVEKS playing Black: 54 - 30 - 16  [0.620] 100
-...      White vs Black: 89 - 86 - 25  [0.507] 200
-Elo difference: 90.6 +/- 46.6, LOS: 100.0 %, DrawRatio: 12.5 %
+Score of ASTROVEOP vs Stockfish1800: 111 - 61 - 28  [0.625] 200
+...      ASTROVEOP playing White: 53 - 34 - 13  [0.595] 100
+...      ASTROVEOP playing Black: 58 - 27 - 15  [0.655] 100
+...      White vs Black: 80 - 92 - 28  [0.470] 200
+Elo difference: 88.7 +/- 46.1, LOS: 100.0 %, DrawRatio: 14.0 %
 SPRT: llr 0 (0.0%), lbound -inf, ubound inf
 
-Score of ASTROVEIID vs ASTROVELMP: 15 - 11 - 74  [0.520] 100
-...      ASTROVEIID playing White: 4 - 5 - 41  [0.490] 50
-...      ASTROVEIID playing Black: 11 - 6 - 33  [0.550] 50
-...      White vs Black: 10 - 16 - 74  [0.470] 100
-Elo difference: 13.9 +/- 34.7, LOS: 78.4 %, DrawRatio: 74.0 %
+Score of ASTROVEOP vs ASTROVEIID: 11 - 22 - 67  [0.445] 100
+...      ASTROVEOP playing White: 5 - 11 - 34  [0.440] 50
+...      ASTROVEOP playing Black: 6 - 11 - 33  [0.450] 50
+...      White vs Black: 16 - 17 - 67  [0.495] 100
+Elo difference: -38.4 +/- 39.0, LOS: 2.8 %, DrawRatio: 67.0 %
 SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
 
 
 ```
