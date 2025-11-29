@@ -150,7 +150,7 @@ private:
     // --- search algorithm ---
     //negamax with alpha-beta pruning and PV node
     template <Color Us, bool PvNode>
-    int pvs(int depth, int ply, int alpha, int beta, bool cutNode);
+    int pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move previousMove);
 
     //extend search at leaf of tree for avoiding horizon effect
     template <Color Us>
@@ -170,11 +170,13 @@ private:
 
     //for history heuristics
     int history[2][64][64];  //[color][fromsqu][tosqu]
+    Move counterMoves[2][64][64];
     void clearHistory(){
         for(int c=0;c<2;++c){
             for(int f=0;f<64;++f){
                 for(int t=0;t<64;t++){
                     history[c][f][t]=0;
+                    counterMoves[c][f][t]=NO_MOVE;
                 }
             }
         }

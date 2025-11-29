@@ -121,9 +121,9 @@ void Searcher::iterative_deepening() {
             stack[0].pv.clear();
 
             if (pos.sideToMove() == White) {
-                score = pvs<White, true>(depth, 0, -INFINITE, INFINITE, false);
+                score = pvs<White, true>(depth, 0, -INFINITE, INFINITE, false,NO_MOVE);
             } else {
-                score = pvs<Black, true>(depth, 0, -INFINITE, INFINITE, false);
+                score = pvs<Black, true>(depth, 0, -INFINITE, INFINITE, false,NO_MOVE);
             }
         
             // check hard time
@@ -170,7 +170,7 @@ void Searcher::iterative_deepening() {
 }
 
 template <Color c, bool PvNode>
-int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
+int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move previousMove) {
     if(ply<MAX_PLY){
         stack[ply].pv.length=0;
     }
@@ -199,6 +199,12 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
     
 
     bool inCheck=pos.inCheck<c>();
+    //check extension
+    int extension=0;
+    if(inCheck){
+        extension=1;
+    }
+
     //static evaluation
     int staticEval=0;
     if(!inCheck){
@@ -228,7 +234,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
         if(depth-R-1>0){
             pos.makeNullMove<c>();
 
-            int score=-pvs<~c,false>(depth-R-1,ply+1,-beta,-beta+1,!cutNode);
+            int score=-pvs<~c,false>(depth-R-1,ply+1,-beta,-beta+1,!cutNode,NO_MOVE);
 
             pos.unmakeNullMove<c>();
             if(stopFlag) return 0;
@@ -258,7 +264,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
     if (moves.empty())
         return pos.inCheck<c>() ? -MATE_SCORE + ply : 0;
 
-    orderer.scoreMoves(pos, moves, ttMove, stack[ply].killers,history);
+    orderer.scoreMoves(pos, moves, ttMove, stack[ply].killers,history,previousMove, counterMoves);
 
     Move bestMove = NO_MOVE;
     int bestScore = -INFINITE;
@@ -284,14 +290,14 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
         bool needfullsearch=true;
 
         // ============================ LMR =========================
-        if(depth>=3 && legalMoves>4 && !PvNode && !inCheck && !move.is_capture() && !move.is_promotion() && !givesCheck){
+        if(depth>=3 && legalMoves>4 && !PvNode && !inCheck && !move.is_capture() && !move.is_promotion() && !givesCheck && extension==0){
             int R=1+(depth/6);
             if(legalMoves>10) R++;
             //also don`t reduce when depth<1
             int reduceddepth=std::max(1,depth-1-R);
 
             //now search with LMR
-            score=-pvs<~c,false>(reduceddepth,ply+1,-alpha-1,-alpha,true);
+            score=-pvs<~c,false>(reduceddepth,ply+1,-alpha-1,-alpha,true,move);
             //so now check if score>alpha then our reuction is wrong and move is good
             if(score>alpha){
                 needfullsearch=true;
@@ -303,11 +309,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
         //now full depth
         if(needfullsearch){
             if (legalMoves==1) {
-                score = -pvs<~c, PvNode>(depth - 1, ply + 1, -beta, -alpha, false);
+                score = -pvs<~c, PvNode>(depth - 1 + extension, ply + 1, -beta, -alpha, false,move);
             } else {
-                score = -pvs<~c, false>(depth - 1, ply + 1, -alpha - 1, -alpha, true);
+                score = -pvs<~c, false>(depth - 1 + extension, ply + 1, -alpha - 1, -alpha, true,move);
                 if (score > alpha && score < beta){
-                    score = -pvs<~c, PvNode>(depth - 1, ply + 1, -beta, -alpha, false);
+                    score = -pvs<~c, PvNode>(depth - 1 + extension, ply + 1, -beta, -alpha, false,move);
                 }
             }
         }
@@ -337,6 +343,10 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode) {
                         if(history[side][move.from()][move.to()]>16000){
                             history[side][move.from()][move.to()]=16000;
                         }
+                        if(previousMove!=NO_MOVE){
+                            counterMoves[side][previousMove.from()][previousMove.to()]=move;
+                        }
+
                     }
                     break; // beta cutoff
                 }
@@ -425,7 +435,7 @@ int Searcher::quiescence(int alpha, int beta, int ply) {
     //sort only the interesting move
     if(inCheck){
         Move ttMove=NO_MOVE;
-        orderer.scoreMoves(pos,interestingMoves,ttMove,stack[ply].killers,history);
+        orderer.scoreMoves(pos,interestingMoves,ttMove,stack[ply].killers,history,NO_MOVE,counterMoves);
     }
     else{
         orderer.scoreCaptures(pos,interestingMoves);
