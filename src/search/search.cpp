@@ -225,6 +225,19 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
         stack[ply].staticEval=staticEval;
     }
 
+    // =================== RAZORING =================
+    //so here concept is if we are ner leaf nodes and static eval is too much lower than alpha 
+    //then we probably can`t recover
+    if(!PvNode && depth<=3 && staticEval +300*depth<alpha){
+        //so go into quiescence search
+        int score=quiescence<c>(alpha,beta,ply);
+        //and if qsearch told we fails low return then
+        if(score<=alpha){
+            return score;
+        }
+    }
+
+
     //=================== RFP ==================
     // so if we winning by a lot (eval-margin>beta) we assume that we win without needing to search further
     if(!PvNode&& !inCheck && depth<=8 && pos.hasNonPawnMaterial<c>() && abs(beta)<MATE_SCORE-100){
@@ -270,19 +283,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
             futilityprun=true;
         }
     }
-    /*
-    // =================== RAZORING =================
-    //so here concept is if we are ner leaf nodes and static eval is too much lower than alpha 
-    //then we probably can`t recover
-    if(!PvNode && depth<=3 && staticEval +300*depth<alpha){
-        //so go into quiescence search
-        int score=quiescence(alpha,beta,ply);
-        //and if qsearch told we fails low return then
-        if(score<=alpha){
-            return score;
-        }
-    }
-    */
+    
     
     // Move generation
     MoveList moves;
@@ -308,7 +309,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
                 continue; //skip the move
             }
         }
-        /*
+        
         //Histroy pruning
         //so here we skip move that have consistently failed low in past
         if(!PvNode && depth<=3 && !move.is_capture() && !move.is_promotion() && legalMoves>1 && !pos.inCheck<c>()){
@@ -317,7 +318,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
                 continue; //means prune
             }
         }
-        */
+        
 
         pos.makemove<c>(move);
 
