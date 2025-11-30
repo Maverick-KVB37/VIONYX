@@ -21,7 +21,7 @@ BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVETE
+TARGET := $(BIN_DIR)/ASTROVEFIN
 
 all: $(TARGET)
 
