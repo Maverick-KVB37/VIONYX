@@ -7,25 +7,35 @@
 
 namespace ASTROVE {
 namespace eval{
-    using EvalScore = int32_t;
+    /*
     using Score = int16_t;
+
+    struct EvalScore{
+        int32_t value;
+        
+        //constructor allow automatic conversion
+        constexpr EvalScore(int32_t v=0) : value(v) {}
+        //allow automatic conversion to int32_t
+        constexpr operator int32_t() const { return value;}
+    };
 
     // Compose a combined evaluation with opening and endgame parts
     constexpr EvalScore composeEval(Score opening, Score endgame) {
-        return static_cast<EvalScore>(static_cast<uint32_t>(endgame) << 16) |
+        return EvalScore(static_cast<uint32_t>(endgame) << 16) |
                                       (static_cast<uint16_t>(opening));
     }
 
     // Extract opening and endgame from combined EvalScore
     constexpr Score openingScore(EvalScore score) {
-        return static_cast<Score>(score & 0xFFFF);
+        return static_cast<Score>(score.value & 0xFFFF);
     }
     constexpr Score endgameScore(EvalScore score) {
-        return static_cast<Score>((score >> 16) & 0xFFFF);
+        return static_cast<Score>((score.value >> 16) & 0xFFFF);
     }
+    */
 
     // Evaluation constants
-    constexpr EvalScore TEMPO_BONUS = composeEval(10, 10);
+    constexpr EvalScore TEMPO_BONUS = composeEval(20, 10);
 
     //penalty for pawn
     constexpr EvalScore ISOLATED_PAWN_PENALTY= composeEval(-15,-20);
@@ -129,32 +139,27 @@ namespace eval{
     };
 
     struct EvaluationData {
-
         int32_t mg=0;
         int32_t eg=0;
 
         void add(EvalScore s) {
-            mg+=static_cast<int16_t>(s& 0xFFFF);
-            eg+=static_cast<int16_t>((s>>16)& 0xFFFF);
+            mg+=static_cast<int16_t>(s.value& 0xFFFF);
+            eg+=static_cast<int16_t>((s.value >> 16)& 0xFFFF);
         }
 
-        void subtract(EvalScore s) {
-            mg-=static_cast<int16_t>(s& 0xFFFF);
-            eg-=static_cast<int16_t>((s>>16)& 0xFFFF);
-        }
-
-        void addFlat(int s){
+        void add(int s){
             mg+=s;
             eg+=s;
         }
 
-        void subFlat(int s){
-            mg-=s;
-            eg-=s;
+        void subtract(EvalScore s) {
+            mg-=static_cast<int16_t>(s.value& 0xFFFF);
+            eg-=static_cast<int16_t>((s.value>>16)& 0xFFFF);
         }
 
-        EvalScore currentScore() const {
-            return composeEval(static_cast<Score>(mg), static_cast<Score>(eg));
+        void subtract(int s){
+            mg-=s;
+            eg-=s;
         }
         
         Score opening() const {
@@ -170,13 +175,13 @@ namespace eval{
     public:
         Evaluator() = default;
         ~Evaluator() = default;
-
         Score evaluate_board(const Position& pos);
 
     private:
         EvaluationData evalData;
 
         void initialize(const Position& pos);
+
         void evaluate_material_and_placement(const Position& pos);
         void evaluate_pawns(const Position& pos);
         void evaluate_mobility(const Position& pos);

@@ -17,15 +17,14 @@ namespace ASTROVE::eval {
         evaluate_king_safety(pos);
         evaluate_rook(pos);
         evaluate_piece_structure(pos);
-
-        Score result = calculate_final_score(pos);
         
-        return result;
+        return calculate_final_score(pos);
     }
 
     void Evaluator::initialize(const Position& pos) {
         evalData = EvaluationData{};
     }
+
     void Evaluator::evaluate_material_and_placement(const Position& pos){
         for(PieceType pt=Pawn;pt<=King;pt=PieceType(pt+1)){
             //so white pieces
@@ -33,14 +32,14 @@ namespace ASTROVE::eval {
             while(w){
                 Square sq=poplsb(w);
                 evalData.add(PieceValues[pt]);
-                evalData.addFlat(PSQT[pt][White][sq]);
+                evalData.add(PSQT[pt][White][sq]);
             }
             //blck
             Bitboard b=pos.pieces(Black,pt);
             while(b){
                 Square sq=poplsb(b);
-                evalData.add(PieceValues[pt]);
-                evalData.subFlat(PSQT[pt][Black][sq]);
+                evalData.subtract(PieceValues[pt]);
+                evalData.subtract(PSQT[pt][Black][sq]);
             }
         }
     }
@@ -340,8 +339,8 @@ namespace ASTROVE::eval {
 
         // Add tempo bonus for side to move (FIX: no parentheses!)
         if (pos.sideToMove() == White) {
-            opening+=static_cast<int16_t>(TEMPO_BONUS & 0xFFFF);
-            endgame+=static_cast<int16_t>((TEMPO_BONUS >> 16) & 0xFFFF);
+            opening+=openingScore(TEMPO_BONUS);
+            endgame+=endgameScore(TEMPO_BONUS);
         }
 
         int phase = calculate_game_phase(pos);
