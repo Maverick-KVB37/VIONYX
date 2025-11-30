@@ -16,29 +16,30 @@ namespace ASTROVE::eval {
         evaluate_mobility(pos);
         evaluate_king_safety(pos);
         evaluate_rook(pos);
-        evaluate_piece_structur(pos);
-
-        Score result = calculate_final_score(pos);
+        evaluate_piece_structure(pos);
         
-        return result;
+        return calculate_final_score(pos);
     }
 
     void Evaluator::initialize(const Position& pos) {
         evalData = EvaluationData{};
     }
+
     void Evaluator::evaluate_material_and_placement(const Position& pos){
         for(PieceType pt=Pawn;pt<=King;pt=PieceType(pt+1)){
             //so white pieces
             Bitboard w=pos.pieces(White,pt);
             while(w){
                 Square sq=poplsb(w);
-                evalData.add(PieceValues[pt]+PSQT[pt][White][sq]);
+                evalData.add(PieceValues[pt]);
+                evalData.add(PSQT[pt][White][sq]);
             }
             //blck
             Bitboard b=pos.pieces(Black,pt);
             while(b){
                 Square sq=poplsb(b);
-                evalData.add(-(PieceValues[pt]+PSQT[pt][Black][sq]));
+                evalData.subtract(PieceValues[pt]);
+                evalData.subtract(PSQT[pt][Black][sq]);
             }
         }
     }
@@ -92,17 +93,17 @@ namespace ASTROVE::eval {
 
             //isolated pawn
             if((blackPawns & ADJACENT_FILES[f])==0){
-                evalData.add(-ISOLATED_PAWN_PENALTY);
+                evalData.subtract(ISOLATED_PAWN_PENALTY);
             }
 
             //double pawn
             if((blackPawns&MASKFILE[f])^(1ULL<<sq)){
-                evalData.add(-DOUBLED_PAWN_PENALTY);
+                evalData.subtract(DOUBLED_PAWN_PENALTY);
             }
 
             //passed apwn
             if((MASKPASSED[Black][sq]&whitePawns)==0){
-                evalData.add(-PASSED_PAWN_BONUS[relative_rank]);
+                evalData.subtract(PASSED_PAWN_BONUS[relative_rank]);
             }
         }
     }
@@ -149,7 +150,7 @@ namespace ASTROVE::eval {
             //exclude friendly pieces
             attacks&=~pos.occupancy(Black);
             int count=popcount(attacks);
-            evalData.add(-MobilityBonus_Knight[count]);
+            evalData.subtract(MobilityBonus_Knight[count]);
         }
 
         bishops=pos.bishops<Black>();
@@ -159,7 +160,7 @@ namespace ASTROVE::eval {
             //exclude friendly pieces
             attacks&=~pos.occupancy(Black);
             int count=popcount(attacks);
-            evalData.add(-MobilityBonus_Bishop[std::min(count,13)]);
+            evalData.subtract(MobilityBonus_Bishop[std::min(count,13)]);
         }
 
         rooks=pos.rooks<Black>();
@@ -169,7 +170,7 @@ namespace ASTROVE::eval {
             //exclude friendly pieces
             attacks&=~pos.occupancy(Black);
             int count=popcount(attacks);
-            evalData.add(-MobilityBonus_Rook[std::min(count,14)]);
+            evalData.subtract(MobilityBonus_Rook[std::min(count,14)]);
         }
     }
 
@@ -187,10 +188,10 @@ namespace ASTROVE::eval {
                     Bitboard fileMask=MASKFILE[f];
                     //check friendly pawn
                     if(!(pos.pawns<White>()&fileMask)){
-                        evalData.add(-KING_OPEN_FILE_PENALTY);
+                        evalData.subtract(KING_OPEN_FILE_PENALTY);
                     }
                     else if(!(pos.pawns<White>() & fileMask & (MASKRANK[RANK_2] | MASKRANK[RANK_3]))){
-                        evalData.add(-KING_PAWN_SHIELD_PENALTY);
+                        evalData.subtract(KING_PAWN_SHIELD_PENALTY);
                     }
                 }
             }
@@ -200,10 +201,10 @@ namespace ASTROVE::eval {
                     Bitboard fileMask=MASKFILE[f];
                     //check friendly pawn
                     if(!(pos.pawns<White>()&fileMask)){
-                        evalData.add(-KING_OPEN_FILE_PENALTY);
+                        evalData.subtract(KING_OPEN_FILE_PENALTY);
                     }
                     else if(!(pos.pawns<White>() & fileMask & (MASKRANK[RANK_2] | MASKRANK[RANK_3]))){
-                        evalData.add(-KING_PAWN_SHIELD_PENALTY);
+                        evalData.subtract(KING_PAWN_SHIELD_PENALTY);
                     }
                 }
             }
@@ -269,23 +270,23 @@ namespace ASTROVE::eval {
 
             if (!(pos.pawns<Black>()&fileMask)) {
                 if (!(pos.pawns<White>() & fileMask)) {
-                    evalData.add(-ROOK_OPEN_FILE_BONUS);
+                    evalData.subtract(ROOK_OPEN_FILE_BONUS);
                 } else {
-                    evalData.add(-ROOK_SEMI_OPEN_FILE_BONUS);
+                    evalData.subtract(ROOK_SEMI_OPEN_FILE_BONUS);
                 }
             }
         }
     }
 
     //ouposts
-    void Evaluator::evaluate_piece_structur(const Position& pos){
+    void Evaluator::evaluate_piece_structure(const Position& pos){
         //bishop pair
         if(popcount(pos.bishops<White>())>=2){
             evalData.add(BISHOP_PAIR_BONUS);
         }
 
         if(popcount(pos.bishops<Black>())>=2){
-            evalData.add(-BISHOP_PAIR_BONUS);
+            evalData.subtract(BISHOP_PAIR_BONUS);
         }
         
         //knight outpost
@@ -314,7 +315,7 @@ namespace ASTROVE::eval {
             if(rr>=RANK_3 && rr<=RANK_6){
                 if(Attacks::get_pawn_attacks(White,sq)& bpawns){
                     //means it`s supported by pawn
-                    evalData.add(-KNIGHT_OUTPOST_BONUS[rr]);
+                    evalData.subtract(KNIGHT_OUTPOST_BONUS[rr]);
                 }
             }
         }
@@ -333,21 +334,18 @@ namespace ASTROVE::eval {
     }
 
     Score Evaluator::calculate_final_score(const Position& pos) const {
-    
-        EvalScore score = evalData.currentScore;
+        Score opening = evalData.opening();
+        Score endgame = evalData.endgame();
 
         // Add tempo bonus for side to move (FIX: no parentheses!)
         if (pos.sideToMove() == White) {
-            score += TEMPO_BONUS;
+            opening+=openingScore(TEMPO_BONUS);
+            endgame+=endgameScore(TEMPO_BONUS);
         }
 
         int phase = calculate_game_phase(pos);
-        constexpr int maxPhase = 24;
 
-        Score opening = openingScore(score);
-        Score endgame = endgameScore(score);
-
-        Score finalScore = (opening * phase + endgame * (maxPhase - phase)) / maxPhase;
+        Score finalScore = (opening * phase + endgame * (24 - phase)) / 24;
     
         Score result = (pos.sideToMove() == White) ? finalScore : -finalScore;
     
