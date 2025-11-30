@@ -9,11 +9,10 @@ ASTROVE is a chess engine implementing bitboard-based move generation, principal
 
 ## Strength
 
-Estimated Rating:  **~1891 Elo**
+Estimated Rating:  **~1891 Elo**(VS Stockfish 1800 benchmark)
 
 ## Match Results vs Stockfish 1800 elo
 ```
-
 Score of ASTROVEOP vs Stockfish1800: 111 - 61 - 28  [0.625] 200
 ...      ASTROVEOP playing White: 53 - 34 - 13  [0.595] 100
 ...      ASTROVEOP playing Black: 58 - 27 - 15  [0.655] 100
@@ -21,33 +20,82 @@ Score of ASTROVEOP vs Stockfish1800: 111 - 61 - 28  [0.625] 200
 Elo difference: 88.7 +/- 46.1, LOS: 100.0 %, DrawRatio: 14.0 %
 SPRT: llr 0 (0.0%), lbound -inf, ubound inf
 
-Score of ASTROVEOP vs ASTROVEIID: 11 - 22 - 67  [0.445] 100
-...      ASTROVEOP playing White: 5 - 11 - 34  [0.440] 50
-...      ASTROVEOP playing Black: 6 - 11 - 33  [0.450] 50
-...      White vs Black: 16 - 17 - 67  [0.495] 100
-Elo difference: -38.4 +/- 39.0, LOS: 2.8 %, DrawRatio: 67.0 %
-SPRT: llr 0 (0.0%), lbound -inf, ubound inf
-
-
-
 ```
 
-## Features
 
-- Bitboard representation (12 bitboards for piece types)
-- Magic bitboard move generation for sliding pieces
-- Principal Variation Search (PVS) with alpha-beta pruning
-- Quiescence search for tactical positions
-- Transposition table (64MB default)
-- Move ordering: hash move, MVV-LVA captures, killer moves
-- UCI protocol support
-- Zobrist hashing for position keys
+---
+
+##  Features
+
+### 1.  Core 
+
+- **Bitboard Representation (64-bit)**
+- **Magic Bitboards**
+- **Zobrist Hashing**
+- **Transposition Table**
+
+- **UCI Protocol Support**
+  - Full support for commands like:
+    ```
+    uci, isready, ucinewgame, position, go, stop, quit
+    ```
+  - Compatible with all UCI GUIs.
+
+---
+
+### 2.  SEARCH
+
+  - **Iterative Deepening**
+  - **Principal Variation Search (PVS)**
+  - **Alpha-Beta pruning**
+
+#### Move Ordering Priority
+
+1. **Hash Move** (best from TT)
+2. **MVV-LVA** (Best captures first)
+3. **Killer Heuristic** (2 killer moves per ply)
+4. **History Heuristic** (Quiet move success based ordering)
+5. **Counter Move History** (Replies to opponent move)
+
+#### Pruning & Selectivity
+
+- **NMP (Null Move Pruning)**
+- **LMR (Late Move Reduction)**
+- **LMP (Late Move Pruning)**
+- **RFP (Reverse Futility Pruning)** 
+- **FP (Futility Pruning)**
+- **IID (Internal Iterative Deepening)**  
+- **Check Extensions** 
+- **Quiescence Search**
+
+---
+
+### 3.Evaluation (Hand Crafted Evaluation – HCE)
+
+#### Evaluation Components
+
+| Feature | Description |
+|--------|-------------|
+| **Material** | Tapered values (Knights strong in MG, Rooks in EG) |
+| **Isolated Pawns** | Penalized |
+| **Doubled Pawns** | Penalized |
+| **Passed Pawns** | Big bonus increasing with rank, massive in endgames |
+| **Knight Outposts** | Bonus rank 4-6 if supported by pawn, safe from enemy pawns |
+| **Bishop Pair** | Static bonus |
+| **Rooks on files** | Bonus for open and semi-open files |
+| **King Safety** | Pawn shield + open file penalty (reduced to 0 in endgame) |
+
+King safety is **tapered to zero in endgame** to force king activation.
+
+---
 
 ## Testing
 
-Run test match against Stockfish:
+### ▶ Run a quick match
 
-
+```bash
+cutechess-cli -engine cmd=./ASTROVE -engine cmd=./Stockfish1800 -each tc=10+0.1 -rounds 100
+```
 
 ## License
 
