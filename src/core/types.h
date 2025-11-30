@@ -139,3 +139,41 @@ ENABLE_INCR_OPERATORS_ON(File)
 ENABLE_INCR_OPERATORS_ON(Rank)
 
 #undef ENABLE_INCR_OPERATORS_ON
+
+//for tapered eval to hold MG AND EG
+struct S{
+    int mg;
+    int eg;
+
+    //constructor
+    constexpr S(int m=0,int e=0):mg(m),eg(e){}
+    //now operator overloading
+    S& operator+=(const S& other){
+        mg+=other.mg;
+        eg+=other.eg;
+        return *this;
+    }
+
+    S& operator-=(const S& other){
+        mg-=other.mg;
+        eg-=other.eg;
+        return *this;
+    }
+
+    S operator+(const S& other) const{
+        return S(mg+other.mg,eg+other.eg);
+    }
+
+    S operator-(const S& other) const{
+        return S(mg-other.mg,eg-other.eg);
+    }
+
+    S operator-() const {
+        return S(-mg,-eg);
+    }
+
+    S operator*(int i) const {
+        return S(mg*i,eg*i);
+    }
+
+};
