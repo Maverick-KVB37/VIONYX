@@ -270,7 +270,20 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
             futilityprun=true;
         }
     }
-
+    /*
+    // =================== RAZORING =================
+    //so here concept is if we are ner leaf nodes and static eval is too much lower than alpha 
+    //then we probably can`t recover
+    if(!PvNode && depth<=3 && staticEval +300*depth<alpha){
+        //so go into quiescence search
+        int score=quiescence(alpha,beta,ply);
+        //and if qsearch told we fails low return then
+        if(score<=alpha){
+            return score;
+        }
+    }
+    */
+    
     // Move generation
     MoveList moves;
     gen.generate_all_moves<c>(pos, moves);
@@ -295,6 +308,16 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
                 continue; //skip the move
             }
         }
+        /*
+        //Histroy pruning
+        //so here we skip move that have consistently failed low in past
+        if(!PvNode && depth<=3 && !move.is_capture() && !move.is_promotion() && legalMoves>1 && !pos.inCheck<c>()){
+            int hscore=history[pos.sideToMove()][move.from()][move.to()];
+            if(hscore<-4000*depth){
+                continue; //means prune
+            }
+        }
+        */
 
         pos.makemove<c>(move);
 
@@ -321,8 +344,18 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
 
         // ============================ LMR =========================
         if(depth>=3 && legalMoves>4 && !PvNode && !inCheck && !move.is_capture() && !move.is_promotion() && !givesCheck && extension==0){
-            int R=1+(depth/6);
+
+            int R=1+(depth/3);
+
             if(legalMoves>10) R++;
+            if (legalMoves > 20) R++;
+
+            int historyScore = history[pos.sideToMove()][move.from()][move.to()];
+            if (historyScore > 0) R -= 1;
+            if (historyScore < -4000) R += 1;
+
+            R = std::max(0, R);
+
             //also don`t reduce when depth<1
             int reduceddepth=std::max(1,depth-1-R);
 
