@@ -224,7 +224,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
         staticEval=eval.evaluate_board(pos);
         stack[ply].staticEval=staticEval;
     }
-
+    /*
     // =================== RAZORING =================
     //so here concept is if we are ner leaf nodes and static eval is too much lower than alpha 
     //then we probably can`t recover
@@ -236,6 +236,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
             return score;
         }
     }
+    */
 
 
     //=================== RFP ==================
@@ -309,7 +310,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
                 continue; //skip the move
             }
         }
-        
+        /*
         //Histroy pruning
         //so here we skip move that have consistently failed low in past
         if(!PvNode && depth<=3 && !move.is_capture() && !move.is_promotion() && legalMoves>1 && !pos.inCheck<c>()){
@@ -318,6 +319,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
                 continue; //means prune
             }
         }
+        */
         
 
         pos.makemove<c>(move);
@@ -346,7 +348,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
         // ============================ LMR =========================
         if(depth>=3 && legalMoves>4 && !PvNode && !inCheck && !move.is_capture() && !move.is_promotion() && !givesCheck && extension==0){
 
-            int R=1+(depth/3);
+            int R=1+(depth/6);
 
             if(legalMoves>10) R++;
             if (legalMoves > 20) R++;
