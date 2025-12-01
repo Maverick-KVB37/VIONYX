@@ -47,4 +47,15 @@
 *.txt
 *.sh
 ./stockfish
-ASTROVENMP
+
+# Ignore Executables
+ASTROVE
+ASTROVE*
+*.exe
+*.o
+build/
+bin/
+
+# Ignore System Files
+.DS_Store
+.vscode/
