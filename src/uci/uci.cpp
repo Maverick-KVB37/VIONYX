@@ -10,8 +10,8 @@
 #include "../core/zobrist.h"
 #include "../core/magic.h"
 #include "../evaluation/evaluation.h"
+#include "../search/search.h"
 
-// Don't redefine defaultFEN - it's already in position.h
 
 UCI::UCI() : pos(nullptr), tt() {
     pos = new Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -54,6 +54,9 @@ void UCI::uciLoop() {
             iss >> token;
 
             if (token == "startpos") {
+                if (searcher) {
+                    searcher->clearHistory();
+                }
                 pos->parseFEN(defaultFEN);
 
                 // Check if there are moves to apply

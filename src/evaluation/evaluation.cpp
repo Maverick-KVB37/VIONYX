@@ -111,34 +111,45 @@ namespace ASTROVE::eval {
     void Evaluator::evaluate_mobility(const Position& pos){
         Bitboard occupancy=pos.occupancy();
         
+        Bitboard blackPawnAtt=0ULL;
+        Bitboard bp=pos.pawns<Black>();
+        while(bp){
+            Square sq = poplsb(bp);
+            blackPawnAtt |= Attacks::get_pawn_attacks(Black, sq);
+        }
+
+        Bitboard whitePawnAtt = 0ULL;
+        Bitboard wp = pos.pawns<White>();
+        while(wp){
+            Square sq = poplsb(wp);
+            whitePawnAtt |= Attacks::get_pawn_attacks(White, sq);
+        }
+
+        Bitboard whiteSafe = ~pos.occupancy(White) & ~blackPawnAtt;
+        Bitboard blackSafe = ~pos.occupancy(Black) & ~whitePawnAtt;
+
         //white mobility
         Bitboard knights=pos.knights<White>();
         while(knights){
             Square sq=poplsb(knights);
-            Bitboard attacks=Attacks::get_knight_attacks(sq);
-            //exclude friendly pieces
-            attacks&=~pos.occupancy(White);
-            int count=popcount(attacks);
+        
+            int count=popcount(Attacks::get_knight_attacks(sq) & whiteSafe);
             evalData.add(MobilityBonus_Knight[count]);
         }
 
         Bitboard bishops=pos.bishops<White>();
         while(bishops){
             Square sq=poplsb(bishops);
-            Bitboard attacks=Attacks::get_bishop_attacks(sq,occupancy);
-            //exclude friendly pieces
-            attacks&=~pos.occupancy(White);
-            int count=popcount(attacks);
+        
+            int count=popcount(Attacks::get_bishop_attacks(sq, occupancy) & whiteSafe);
             evalData.add(MobilityBonus_Bishop[std::min(count,13)]);
         }
 
         Bitboard rooks=pos.rooks<White>();
         while(rooks){
             Square sq=poplsb(rooks);
-            Bitboard attacks=Attacks::get_rook_attacks(sq,occupancy);
-            //exclude friendly pieces
-            attacks&=~pos.occupancy(White);
-            int count=popcount(attacks);
+            
+            int count=popcount(Attacks::get_rook_attacks(sq, occupancy) & whiteSafe);
             evalData.add(MobilityBonus_Rook[std::min(count,14)]);
         }
 
@@ -146,102 +157,108 @@ namespace ASTROVE::eval {
         knights=pos.knights<Black>();
         while(knights){
             Square sq=poplsb(knights);
-            Bitboard attacks=Attacks::get_knight_attacks(sq);
-            //exclude friendly pieces
-            attacks&=~pos.occupancy(Black);
-            int count=popcount(attacks);
+            
+            int count=popcount(Attacks::get_knight_attacks(sq) & blackSafe);
             evalData.subtract(MobilityBonus_Knight[count]);
         }
 
         bishops=pos.bishops<Black>();
         while(bishops){
             Square sq=poplsb(bishops);
-            Bitboard attacks=Attacks::get_bishop_attacks(sq,occupancy);
-            //exclude friendly pieces
-            attacks&=~pos.occupancy(Black);
-            int count=popcount(attacks);
+            
+            int count=popcount(Attacks::get_bishop_attacks(sq, occupancy) & blackSafe);
             evalData.subtract(MobilityBonus_Bishop[std::min(count,13)]);
         }
 
         rooks=pos.rooks<Black>();
         while(rooks){
             Square sq=poplsb(rooks);
-            Bitboard attacks=Attacks::get_rook_attacks(sq,occupancy);
-            //exclude friendly pieces
-            attacks&=~pos.occupancy(Black);
-            int count=popcount(attacks);
+        
+            int count=popcount(Attacks::get_rook_attacks(sq, occupancy) & blackSafe);
             evalData.subtract(MobilityBonus_Rook[std::min(count,14)]);
         }
     }
 
     //king safety pawn shield
     void Evaluator::evaluate_king_safety(const Position& pos){
-        //white king
-        Square ksq=pos.kingsq<White>();
-        int kfile=fileof(ksq);
-        int krank=rankof(ksq);
-        //only evaluate for rank<=2
-        if(krank<=RANK_2){
-            if(kfile>=FILE_F){
-                //check pawn on F,G,H
-                for(int f=FILE_F;f<=FILE_H;++f){
-                    Bitboard fileMask=MASKFILE[f];
-                    //check friendly pawn
-                    if(!(pos.pawns<White>()&fileMask)){
-                        evalData.subtract(KING_OPEN_FILE_PENALTY);
-                    }
-                    else if(!(pos.pawns<White>() & fileMask & (MASKRANK[RANK_2] | MASKRANK[RANK_3]))){
-                        evalData.subtract(KING_PAWN_SHIELD_PENALTY);
-                    }
-                }
-            }
-            else if(kfile<=FILE_C){
-                //check pawn on A,B,C
-                for(int f=FILE_A;f<=FILE_C;++f){
-                    Bitboard fileMask=MASKFILE[f];
-                    //check friendly pawn
-                    if(!(pos.pawns<White>()&fileMask)){
-                        evalData.subtract(KING_OPEN_FILE_PENALTY);
-                    }
-                    else if(!(pos.pawns<White>() & fileMask & (MASKRANK[RANK_2] | MASKRANK[RANK_3]))){
-                        evalData.subtract(KING_PAWN_SHIELD_PENALTY);
-                    }
-                }
-            }
-        }
+        Bitboard occupancy = pos.occupancy();  // compute ONCE
+        
+        //a helper for calculate danger score for a specific side
+        auto calculatedanger = [&](Color side)->EvalScore{
+            Square ksq = (side == White) ? pos.kingsq<White>() : pos.kingsq<Black>();
+            Color enemy=~side;
 
-        //now we do for blck king
-        ksq=pos.kingsq<Black>();
-        kfile=fileof(ksq);
-        krank=rankof(ksq);
-        if(krank>=RANK_7){
-            if(kfile>=FILE_F){
-                //check pawn on F,G,H
-                for(int f=FILE_F;f<=FILE_H;++f){
-                    Bitboard fileMask=MASKFILE[f];
-                    //check friendly pawn
-                    if(!(pos.pawns<Black>()&fileMask)){
-                        evalData.add(KING_OPEN_FILE_PENALTY);
-                    }
-                    else if(!(pos.pawns<Black>() & fileMask & (MASKRANK[RANK_7] | MASKRANK[RANK_6]))){
-                        evalData.add(KING_PAWN_SHIELD_PENALTY);
-                    }
+            //king ring
+            Bitboard kingring=Attacks::get_king_attacks(ksq);
+
+            //now counting attackers
+            int attacksunit=0;
+            int attackercount=0;
+            
+            //knight
+            Bitboard knights=pos.pieces(enemy,Knight);
+            while(knights){
+                Square sq=poplsb(knights);
+                Bitboard attacks=Attacks::get_knight_attacks(sq);
+
+                if(attacks & kingring){
+                    attacksunit += knightweight;
+                    attackercount++;
                 }
             }
-            else if(kfile<=FILE_C){
-                //check pawn on A,B,C
-                for(int f=FILE_A;f<=FILE_C;++f){
-                    Bitboard fileMask=MASKFILE[f];
-                    //check friendly pawn
-                    if(!(pos.pawns<Black>()&fileMask)){
-                        evalData.add(KING_OPEN_FILE_PENALTY);
-                    }
-                    else if(!(pos.pawns<Black>() & fileMask & (MASKRANK[RANK_6] | MASKRANK[RANK_7]))){
-                        evalData.add(KING_PAWN_SHIELD_PENALTY);
-                    }
+
+            //bishop
+            Bitboard bishops=pos.pieces(enemy,Bishop);
+            while(bishops){
+                Square sq=poplsb(bishops);
+                Bitboard attacks=Attacks::get_bishop_attacks(sq,occupancy);
+
+                if(attacks & kingring){
+                    attacksunit+=bishopweight;
+                    attackercount++;
                 }
             }
-        }
+
+            //rooks
+            Bitboard rooks=pos.pieces(enemy,Rook);
+            while (rooks){
+                Square sq = poplsb(rooks);
+                Bitboard attacks = Attacks::get_rook_attacks(sq, occupancy);
+
+                if (attacks & kingring) {
+                    attacksunit += rookweight;
+                    attackercount++;
+                }
+            }
+
+            //queen
+            Bitboard queens=pos.pieces(enemy,Queen);
+            while (queens) {
+                Square sq=poplsb(queens);
+
+                Bitboard attacks = Attacks::get_bishop_attacks(sq,occupancy) 
+                                 | Attacks::get_rook_attacks(sq,occupancy);
+                
+                if (attacks & kingring) {
+                    attacksunit += queenweight;
+                    attackercount++;
+                }
+            }
+
+            //now calculate penalty
+            if(attackercount>=1){
+                int index=std::min(attacksunit+ (attackercount*3),99);
+                return SafetyTable[index];
+            }
+            return composeEval(0,0);
+        };
+
+        //now penalty
+        EvalScore whitedanger = calculatedanger(White);
+        evalData.subtract(whitedanger);
+
+        EvalScore blackdanger=calculatedanger(Black);
+        evalData.add(blackdanger);
     }
 
     void Evaluator::evaluate_rook(const Position& pos) {

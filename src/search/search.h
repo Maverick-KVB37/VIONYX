@@ -146,6 +146,16 @@ public:
     //reset the internal state for a new game
     void newGame();
 
+    void clearHistory(){
+        for(int c=0;c<2;++c){
+            for(int f=0;f<64;++f){
+                for(int t=0;t<64;t++){
+                    history[c][f][t]=0;
+                    counterMoves[c][f][t]=NO_MOVE;
+                }
+            }
+        }
+    }
 private:
     // --- search algorithm ---
     //negamax with alpha-beta pruning and PV node
@@ -171,16 +181,6 @@ private:
     //for history heuristics
     int history[2][64][64];  //[color][fromsqu][tosqu]
     Move counterMoves[2][64][64];
-    void clearHistory(){
-        for(int c=0;c<2;++c){
-            for(int f=0;f<64;++f){
-                for(int t=0;t<64;t++){
-                    history[c][f][t]=0;
-                    counterMoves[c][f][t]=NO_MOVE;
-                }
-            }
-        }
-    }
     
     // --- DATA MEMBERS ---
     Position& pos;

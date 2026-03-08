@@ -138,6 +138,43 @@ namespace eval{
         composeEval(60,60)
     };
 
+    //attacks weights for king attacks
+    constexpr int knightweight=2;
+    constexpr int bishopweight=2;
+    constexpr int rookweight=3;
+    constexpr int queenweight=5;
+
+    //king safety table(indec=attacks units(weighted sum of attackers))
+    //value penalty score{middle game ,endgame}
+    constexpr EvalScore SafetyTable[100] = {
+        composeEval(0, 0),  composeEval(0, 0),  composeEval(0, 0),  composeEval(1, 0),
+        composeEval(2, 0),  composeEval(3, 0),  composeEval(5, 0),  composeEval(7, 0),
+        composeEval(9, 0),  composeEval(12, 0), composeEval(15, 0), composeEval(18, 0),
+        composeEval(22, 0), composeEval(26, 0), composeEval(30, 0), composeEval(35, 0),
+        composeEval(40, 0), composeEval(45, 0), composeEval(50, 0), composeEval(55, 0),
+        composeEval(60, 0), composeEval(65, 0), composeEval(70, 0), composeEval(75, 0),
+        composeEval(80, 0), composeEval(85, 0), composeEval(90, 0), composeEval(95, 0),
+        composeEval(100, 0),composeEval(110, 0),composeEval(120, 0),composeEval(130, 0),
+        composeEval(140, 0),composeEval(150, 0),composeEval(160, 0),composeEval(170, 0),
+        composeEval(180, 0),composeEval(190, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),
+        composeEval(200, 0),composeEval(200, 0),composeEval(200, 0),composeEval(200, 0)
+    };
+
+
     struct EvaluationData {
         int32_t mg=0;
         int32_t eg=0;
