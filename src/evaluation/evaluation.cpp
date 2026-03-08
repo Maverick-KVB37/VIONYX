@@ -295,7 +295,7 @@ namespace ASTROVE::eval {
                     attacksunit+=openingScore(KING_OPEN_FILE_PENALTY)/5;
                 }
                 else{
-                    Bitboard shieldRank=(side==White) ? MASKRANK[RANK_2] : MASKRANK[RANK_7];
+                    Bitboard shieldRank=(side==White) ? MASKRANK[RANK_2] | MASKRANK[RANK_3] : MASKRANK[RANK_7] | MASKRANK[RANK_6];
                     if(ownPawns & fileMask & shieldRank){
                         attacksunit-=openingScore(KING_PAWN_SHIELD_PENALTY)/5;
                     }
@@ -310,7 +310,7 @@ namespace ASTROVE::eval {
                 if(pos.pieces(enemy,Queen)==0){
                     attacksunit/=2;
                 }
-                
+
                 int index=std::min(attacksunit+ (attackercount*3),99);
                 return SafetyTable[index];
             }
