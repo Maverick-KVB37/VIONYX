@@ -82,6 +82,25 @@ namespace ASTROVE::eval {
             if((MASKPASSED[White][sq]&blackPawns)==0){
                 evalData.add(PASSED_PAWN_BONUS[r]);
             }
+
+            //BACKWARD PAWN(can`t safely advance + can`t be protected by other pawns)
+            //1. not a passed pawn(can`t advacnce)
+            //2. No friendly pawns on adjacent files at same or lower rank(can`t defended)
+            //3. square in front is attacked by an enemy pawn(pawn becomes a long-term weakness)
+
+            bool isPassed=(MASKPASSED[White][sq] & blackPawns)==0;
+            if(!isPassed){
+                Bitboard ranksBehind=(1ULL<<sq)-1; //all square with index<sq
+                Bitboard friendsBehind=whitePawns & ADJACENT_FILES[f] & ranksBehind;
+
+                //square directly infront of pawn
+                Square frontSq=Square(sq+8);
+                Bitboard frontAttackByEnemy=Attacks::get_pawn_attacks(White,frontSq) & blackPawns;
+
+                if(friendsBehind==0 && frontAttackByEnemy!=0){
+                    evalData.add(BACKWARD_PAWN_PENALTY);
+                }
+            }
         }
 
         //black pawn
@@ -97,13 +116,27 @@ namespace ASTROVE::eval {
             }
 
             //double pawn
-            if((blackPawns&MASKFILE[f])^(1ULL<<sq)){
+            if((blackPawns & MASKFILE[f])^(1ULL<<sq)){
                 evalData.subtract(DOUBLED_PAWN_PENALTY);
             }
 
             //passed apwn
             if((MASKPASSED[Black][sq]&whitePawns)==0){
                 evalData.subtract(PASSED_PAWN_BONUS[relative_rank]);
+            }
+
+            bool isPassed=(MASKPASSED[Black][sq] & whitePawns)==0;
+            if(!isPassed){
+                Bitboard ranksAhead=~((1ULL<<(sq+1))-1); //all square with index>sq
+                Bitboard friendsBehind=blackPawns & ADJACENT_FILES[f] & ranksAhead;
+
+                //square directly infront of pawn
+                Square frontSq=Square(sq-8);
+                Bitboard frontAttackByEnemy=Attacks::get_pawn_attacks(Black,frontSq) & whitePawns;
+
+                if(friendsBehind==0 && frontAttackByEnemy!=0){
+                    evalData.subtract(BACKWARD_PAWN_PENALTY);
+                }
             }
         }
     }
@@ -245,8 +278,39 @@ namespace ASTROVE::eval {
                 }
             }
 
+            
+            /*
+            //PAWN SHIELD/OPEN FILE
+            Bitboard ownPawns = (side == White) ? pos.pawns<White>() : pos.pawns<Black>();
+            int kf = fileof(ksq);
+
+            for(int df=-1;df<=1;df++){
+                int f=kf+df;
+                if(f<0 || f>7){
+                    continue;
+                }
+                Bitboard fileMask=MASKFILE[f];
+
+                if(!(ownPawns & fileMask)){
+                    attacksunit+=openingScore(KING_OPEN_FILE_PENALTY)/5;
+                }
+                else{
+                    Bitboard shieldRank=(side==White) ? MASKRANK[RANK_2] : MASKRANK[RANK_7];
+                    if(ownPawns & fileMask & shieldRank){
+                        attacksunit-=openingScore(KING_PAWN_SHIELD_PENALTY)/5;
+                    }
+                }
+            }
+            attacksunit=std::max(0,attacksunit);
+            */
+
+
             //now calculate penalty
             if(attackercount>=1){
+                if(pos.pieces(enemy,Queen)==0){
+                    attacksunit/=2;
+                }
+                
                 int index=std::min(attacksunit+ (attackercount*3),99);
                 return SafetyTable[index];
             }
