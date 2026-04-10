@@ -49,8 +49,6 @@
 ./stockfish
 
 # Ignore Executables
-ASTROVE
-ASTROVE*
 *.exe
 *.o
 build/
