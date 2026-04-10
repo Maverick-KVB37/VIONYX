@@ -422,6 +422,9 @@ namespace ASTROVE::eval {
         if (pos.sideToMove() == White) {
             opening+=openingScore(TEMPO_BONUS);
             endgame+=endgameScore(TEMPO_BONUS);
+        } else {
+            opening-=openingScore(TEMPO_BONUS);
+            endgame-=endgameScore(TEMPO_BONUS);
         }
 
         int phase = calculate_game_phase(pos);

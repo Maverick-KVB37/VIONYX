@@ -123,7 +123,6 @@ private:
     // Position history for repetition detection
     std::vector<uint64_t> positionHistory;
     uint16_t fullMoveCounter;
-    uint16_t halfMoveCounter;
 
     // Helper functions
     void placePiece(Piece piece, Square sq);
@@ -222,8 +221,6 @@ void Position::makemove(Move move){
     newState->captured=capturedPiece;
 
     state=newState;
-
-    positionHistory.push_back(state->hashKey);
 
     // 2.REMOVE OLD ENPASSANT FROM HASH
     if(state->previous->enpassantSquare!=NO_SQ){
@@ -340,11 +337,8 @@ void Position::makemove(Move move){
     else if(move.is_promotion()){
         state->halfMoveClock=0;
 
-        if (move.is_capture()) {
-            // capturedPiece is already set at the top of the function
-            togglePiece(capturedPiece, to);
-            removePiece(to);
-        }
+        // Note: if this is a capture-promotion, the captured piece
+        // was already removed by step 4 above
 
         Piece promotedPiece;
         switch(flag){
@@ -426,6 +420,9 @@ void Position::makemove(Move move){
     // 13. SWITCH SIDE TO MOVE
     stm = ~stm;
     toggleSide();
+
+    // Record position for repetition detection (after all hash updates)
+    positionHistory.push_back(state->hashKey);
     
     // 14. INCREMENT FULLMOVE
     if (stm == White) {
@@ -521,12 +518,13 @@ inline bool Position::isDrawByRepetition(int ply) const {
     if (positionHistory.size() < 4) return false;
 
     // Calculate ply of last irreversible move (pawn move or capture)
-    int irreversibleMovePly = static_cast<int>(positionHistory.size()) - 1 - static_cast<int>(halfMoveCounter);
+    int irreversibleMovePly = static_cast<int>(positionHistory.size()) - 1 - static_cast<int>(state->halfMoveClock);
     if (irreversibleMovePly < 0) irreversibleMovePly = 0;
 
     int repetitions = 0;
-    // Check positions of the same side to move every 2 plies starting 4 plies ago 
-    for (int i = static_cast<int>(positionHistory.size()) - 4; i >= irreversibleMovePly; i -= 2) {
+    // Current position is at positionHistory[size()-1].
+    // Same-side positions (potential repeats) are at size()-3, size()-5, etc.
+    for (int i = static_cast<int>(positionHistory.size()) - 3; i >= irreversibleMovePly; i -= 2) {
         if (positionHistory[i] == state->hashKey) {
             repetitions++;
             // Twofold repetition inside search (ply > 0) treated as draw to avoid infinite loops
@@ -540,8 +538,8 @@ inline bool Position::isDrawByRepetition(int ply) const {
 
 inline bool Position::isDrawByFiftyMove() const {
     // no draw possible before 4 halfmove
-    if (halfMoveCounter < 4) return false;
-    return halfMoveCounter >= 100;
+    if (state->halfMoveClock < 4) return false;
+    return state->halfMoveClock >= 100;
 }
 
 template <Color c>

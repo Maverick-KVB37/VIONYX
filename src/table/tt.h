@@ -14,7 +14,7 @@ constexpr int NO_HASH_ENTRY   = 32002;
 constexpr int MAX_BUCKETS = 2; // number of tt entrie per index
 
 
-struct alignas(64) TTEntry {
+struct TTEntry {
     uint64_t key;       // zobrist key of the position
     int16_t score;      // stored search score
     int16_t eval;       // static evaluation

@@ -6,7 +6,7 @@ TranspositionTable::TranspositionTable() : table(nullptr), numEntries(0), curren
 
 TranspositionTable::~TranspositionTable() {
     if (table) {
-        ::operator delete[](table, std::align_val_t(64));
+        ::operator delete(table);
     }
 }
 
@@ -30,7 +30,7 @@ void TranspositionTable::init(size_t sizeMB) {
 
     try {
         table = static_cast<TTEntry*>(
-            ::operator new[](numEntries * sizeof(TTEntry), std::align_val_t(64))
+            ::operator new(numEntries * sizeof(TTEntry))
         );
     } catch (const std::bad_alloc&) {
         std::cerr << "FATAL: TT allocation failed for " << sizeMB << " MB.\n";

@@ -121,9 +121,9 @@ void Searcher::iterative_deepening() {
             stack[0].pv.clear();
 
             if (pos.sideToMove() == White) {
-                score = pvs<White, true>(depth, 0, -INFINITE, INFINITE, false,NO_MOVE);
+                score = pvs<White, true>(depth, 0, alpha, beta, false,NO_MOVE);
             } else {
-                score = pvs<Black, true>(depth, 0, -INFINITE, INFINITE, false,NO_MOVE);
+                score = pvs<Black, true>(depth, 0, alpha, beta, false,NO_MOVE);
             }
         
             // check hard time
@@ -183,6 +183,9 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
         return quiescence<c>(alpha, beta, ply);
     }
     nodes++;
+
+    // Draw detection (repetition and fifty-move rule)
+    if (ply > 0 && is_draw(ply)) return 0;
 
     // Stop/time check every 2048 nodes
     if ((nodes & 2047) == 0) check_time();
@@ -294,6 +297,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
 
     orderer.scoreMoves(pos, moves, ttMove, stack[ply].killers,history,previousMove, counterMoves);
 
+    int originalAlpha = alpha;
     Move bestMove = NO_MOVE;
     int bestScore = -INFINITE;
     int legalMoves = 0;
@@ -304,7 +308,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
     for (const Move move : moves) {
 
         //============== LMP ===============
-        if(!PvNode && !inCheck && depth<8 && move.is_capture() && !move.is_promotion()){
+        if(!PvNode && !inCheck && depth<8 && !move.is_capture() && !move.is_promotion()){
             int lmpthre=3+depth*depth;
             if(quietmovesearched>=lmpthre){
                 continue; //skip the move
@@ -353,7 +357,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
             if(legalMoves>10) R++;
             if (legalMoves > 20) R++;
 
-            int historyScore = history[pos.sideToMove()][move.from()][move.to()];
+            int historyScore = history[c][move.from()][move.to()];
             if (historyScore > 0) R -= 1;
             if (historyScore < -4000) R += 1;
 
@@ -426,7 +430,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move pre
 
     // Store to TT
     int flag = (bestScore >= beta) ? HASH_FLAG_BETA :
-                (bestScore > alpha) ? HASH_FLAG_EXACT :
+                (bestScore > originalAlpha) ? HASH_FLAG_EXACT :
                                       HASH_FLAG_ALPHA;
     tt.store(pos.hash(), depth, flag, bestScore, 0, ply, bestMove);
 
@@ -558,9 +562,18 @@ void Searcher::check_time() {
 }
 
 void Searcher::update_uci_info(int depth, int score, const PVLine& pv) {
-    std::cout << "info depth " << depth
-              << " score cp " << score
-              << " nodes " << nodes
+    std::cout << "info depth " << depth;
+
+    // Mate score detection
+    if (std::abs(score) >= MATE_BOUND) {
+        int mate_in_plies = MATE_SCORE - std::abs(score);
+        int mate_in_moves = (mate_in_plies + 1) / 2;
+        std::cout << " score mate " << (score > 0 ? mate_in_moves : -mate_in_moves);
+    } else {
+        std::cout << " score cp " << score;
+    }
+
+    std::cout << " nodes " << nodes
               << " nps " << info.nps
               << " time " << info.time
               << " pv ";

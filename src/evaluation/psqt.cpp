@@ -179,11 +179,11 @@ namespace ASTROVE::eval{
             // Loop through all squares
             for (int sq=0;sq<64;++sq){
 
-                //White PSQT entry
-                PSQT[pType][White][sq]=composeEval(mgPsqtPtrs[pType][sq],egPsqtPtrs[pType][sq]);
+                //White PSQT entry: flip because raw tables are from Black's perspective
+                PSQT[pType][White][sq]=composeEval(mgPsqtPtrs[pType][FLIP(sq)],egPsqtPtrs[pType][FLIP(sq)]);
 
-                //Black PSQT entry(scores stored positive)
-                PSQT[pType][Black][sq]=composeEval(mgPsqtPtrs[pType][FLIP(sq)],egPsqtPtrs[pType][FLIP(sq)]);
+                //Black PSQT entry: read straight (arrays are already Black's perspective)
+                PSQT[pType][Black][sq]=composeEval(mgPsqtPtrs[pType][sq],egPsqtPtrs[pType][sq]);
             }
         }   
     }

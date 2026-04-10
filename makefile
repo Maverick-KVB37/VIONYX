@@ -21,7 +21,7 @@ BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVEPAWNSHI
+TARGET := $(BIN_DIR)/ASTROVEBUGFIX2
 
 all: $(TARGET)
 

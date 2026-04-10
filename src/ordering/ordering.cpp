@@ -177,6 +177,11 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
             }
         }
 
+        //non-capture promotions (very valuable, almost always queen)
+        else if(move.is_promotion()){
+            scores[i]=SCORE_CAPTURE_BASE+600;
+        }
+
         //killer movews
         else if(move==killers[0]){
             scores[i]=SCORE_KILLER_1;

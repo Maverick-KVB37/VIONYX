@@ -125,7 +125,7 @@ inline Square& operator-=(Square& s, Direction d) { return s = Square(int(s) - i
 
 // Piece operators
 constexpr Piece operator~(Piece pc) {
-    return Piece(pc ^ 8); // Swap color
+    return Piece(pc ^ 6); // Swap color: 0-5 ↔ 6-11
 }
 
 // Increment operators
