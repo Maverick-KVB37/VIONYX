@@ -43,6 +43,10 @@ public:
     bool probe(uint64_t key, int depth, int alpha,
                int beta, int& score, Move& bestMove, int ply) const;
 
+    // Probe for singular extension: returns ttDepth, ttFlag, ttScore without cutoff logic
+    bool probeForSE(uint64_t key, int& ttDepth, int& ttFlag,
+                    int& score, Move& bestMove, int ply) const;
+
     int hashfull() const;                        // occupancy (for UCI display)
 
 private:

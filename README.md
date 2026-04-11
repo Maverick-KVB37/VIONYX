@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge&logo=cplusplus&logoColor=white" alt="C++17"/>
   <img src="https://img.shields.io/badge/UCI-Compatible-green?style=for-the-badge" alt="UCI"/>
-  <img src="https://img.shields.io/badge/Elo-~2400-orange?style=for-the-badge" alt="Elo"/>
+  <img src="https://img.shields.io/badge/Elo-~2508-orange?style=for-the-badge" alt="Elo"/>
   <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -21,18 +21,18 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 ### Estimated Rating
 
-# **~2400 Elo**
+# **~2508 Elo**
 
-*Measured via SPRT against Stockfish (UCI_LimitStrength)*
+*Measured via self-play SPRT against previous version (2401 Elo baseline)*
 
 </td>
 <td>
 
 | Metric | Value |
 |:--|:--|
-| **Score vs SF 2300** | **214W – 114L – 24D** |
-| **Win Rate** | **64.2%** |
-| **Elo Difference** | **+101.5 ± 36.5** |
+| **Score vs Astrove 2400** | **88W – 29L – 81D** |
+| **Win Rate** | **64.9%** |
+| **Elo Difference** | **+106.8 ± 37.8** |
 | **LOS** | **100.0%** |
 | **SPRT Result** |  **H1 Accepted** |
 
@@ -42,35 +42,42 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 ---
 
-## Benchmark: ASTROVE vs Stockfish 2300
+## Benchmark: Phase 1 Bug Fixes & Quick Wins
 
-352 games · Time Control `10+0.1` · Opening Book `noob_3moves.epd` · SPRT `elo0=0 elo1=10 α=0.05 β=0.05`
+198 games · Time Control `8+0.08` · Opening Book `noob_3moves.epd` · SPRT `elo0=0 elo1=5 α=0.05 β=0.05`
 
 ```
-Score of Astrove vs SF2300: 214 - 114 - 24  [0.642] 352
-...      Astrove playing White: 106 - 58 - 12  [0.636] 176
-...      Astrove playing Black: 108 - 56 - 12  [0.648] 176
-...      White vs Black: 162 - 166 - 24  [0.494] 352
-Elo difference: 101.5 +/- 36.5, LOS: 100.0 %, DrawRatio: 6.8 %
-SPRT: llr 2.96 (100.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+Score of Astrove_NEW vs Astrove_OLD: 88 - 29 - 81  [0.649] 198
+...      Astrove_NEW playing White: 39 - 14 - 46  [0.626] 99
+...      Astrove_NEW playing Black: 49 - 15 - 35  [0.672] 99
+...      White vs Black: 54 - 63 - 81  [0.477] 198
+Elo difference: 106.8 +/- 37.8, LOS: 100.0 %, DrawRatio: 40.9 %
+SPRT: llr 2.98 (101.4%), lbound -2.94, ubound 2.94 - H1 was accepted
 ```
 
 <details>
 <summary><b>Detailed Game Termination Statistics</b></summary>
 
-| Termination Reason | ASTROVE | SF 2300 |
+| Termination Reason | Astrove_NEW | Astrove_OLD |
 |:--|:-:|:-:|
-| Win: White mates | 106 | 56 |
-| Win: Black mates | 108 | 58 |
-| Loss: White mates | 56 | 106 |
-| Loss: Black mates | 58 | 108 |
-| Draw by 3-fold repetition | 9 | 9 |
+| Win: White mates | 39 | 15 |
+| Win: Black mates | 49 | 14 |
+| Loss: White mates | 15 | 39 |
+| Loss: Black mates | 14 | 49 |
+| Draw by 3-fold repetition | 57 | 57 |
 | Draw by fifty moves rule | 4 | 4 |
-| Draw by insufficient material | 9 | 9 |
-| Draw by stalemate | 2 | 2 |
-| No result | 7 | 7 |
+| Draw by insufficient material | 19 | 19 |
+| Draw by stalemate | 1 | 1 |
+| No result | 2 | 2 |
 
 </details>
+
+### Phase 1 Improvements
+* **Aspiration Windows:** Exponential widening with delta=25.
+* **LMR:** Logarithmic reduction table `0.75 + log(d)*log(m)/2.25`.
+* **Improving Flag:** Calibrates RFP margin, NMP reduction, LMP threshold based on static evaluation progress.
+* **History Malus:** Gravity-based update for quiet moves that fail to cut.
+* **History Aging:** Halving history scores before each iterative deepening step.
 
 ---
 
