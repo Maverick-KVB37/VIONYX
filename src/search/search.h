@@ -1,17 +1,18 @@
 #pragma once
 
-#include "../board/position.h"
 #include "../board/movegen.h"
-#include "../table/tt.h"
-#include "../ordering/ordering.h"
+#include "../board/position.h"
 #include "../evaluation/evaluation.h"
+#include "../ordering/ordering.h"
+#include "../table/tt.h"
 #include "timemanager.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <vector>
+#include <cmath>
 #include <cstdint>
-#include <algorithm>
+#include <vector>
 
 using ASTROVE::eval::Evaluator;
 
@@ -48,159 +49,168 @@ struct SearchInfo;
 
 // stores best play
 struct PVLine {
-    Move moves[MAX_PLY];
-    int length = 0;
+  Move moves[MAX_PLY];
+  int length = 0;
 
-    void clear() { length = 0; }
+  void clear() { length = 0; }
 
-    void update(Move move, const PVLine& childPV) {
-        moves[0] = move;
-        length = 1;
-        
-        // Copy the child's PV into this one
-        int maxCopy = std::min(childPV.length, MAX_PLY - 1);
-        for (int i = 0; i < maxCopy; ++i) {
-                moves[length] = childPV.moves[i];
-                length++;
-        }
+  void update(Move move, const PVLine &childPV) {
+    moves[0] = move;
+    length = 1;
+
+    // Copy the child's PV into this one
+    int maxCopy = std::min(childPV.length, MAX_PLY - 1);
+    for (int i = 0; i < maxCopy; ++i) {
+      moves[length] = childPV.moves[i];
+      length++;
     }
+  }
 };
 
-// store data for a ply 
+// store data for a ply
 struct SearchStack {
-    Move currentMove = NO_MOVE;
-    Move excludedMove = NO_MOVE;
-    Move killers[2] = {NO_MOVE, NO_MOVE};
-    int staticEval = 0;
-    int moveCount = 0;
-    bool inCheck = false;
-    int doubleExtensions = 0;
-    PVLine pv;
+  Move currentMove = NO_MOVE;
+  Move excludedMove = NO_MOVE;
+  Move killers[2] = {NO_MOVE, NO_MOVE};
+  int staticEval = 0;
+  int moveCount = 0;
+  bool inCheck = false;
+  int doubleExtensions = 0;
+  PVLine pv;
 
-    SearchStack() {
-        clear();
-    }
+  SearchStack() { clear(); }
 
-    void clear() {
-        currentMove = excludedMove = NO_MOVE;
-        killers[0] = NO_MOVE;
-        killers[1] = NO_MOVE;
-        staticEval = moveCount = doubleExtensions = 0;
-        inCheck = false;
-        pv.clear();
-    }
+  void clear() {
+    currentMove = excludedMove = NO_MOVE;
+    killers[0] = NO_MOVE;
+    killers[1] = NO_MOVE;
+    staticEval = moveCount = doubleExtensions = 0;
+    inCheck = false;
+    pv.clear();
+  }
 };
 
 // tells the limits for the current search
 struct SearchLimits {
-    int depth = MAX_PLY;
-    uint64_t nodes = UINT64_MAX;
-    int64_t movetime = 0;
-    int64_t movestogo = 0;
-    int64_t wtime=0;
-    int64_t btime=0;
-    int64_t winc=0;
-    int64_t binc=0;
-    bool infinite = false;
-    bool ponder = false;
-    std::vector<Move> searchmoves;
+  int depth = MAX_PLY;
+  uint64_t nodes = UINT64_MAX;
+  int64_t movetime = 0;
+  int64_t movestogo = 0;
+  int64_t wtime = 0;
+  int64_t btime = 0;
+  int64_t winc = 0;
+  int64_t binc = 0;
+  bool infinite = false;
+  bool ponder = false;
+  std::vector<Move> searchmoves;
 };
 
 // collect data for uci output
 struct SearchInfo {
-    int depth = 0;
-    int seldepth = 0;
-    uint64_t nodes = 0;
-    uint64_t tbhits = 0;
-    int score = 0;
-    int time = 0;
-    uint64_t nps = 0;
-    PVLine pv;
-    bool isMate = false;
-    int mateIn = 0;
-    int hashfull = 0;
+  int depth = 0;
+  int seldepth = 0;
+  uint64_t nodes = 0;
+  uint64_t tbhits = 0;
+  int score = 0;
+  int time = 0;
+  uint64_t nps = 0;
+  PVLine pv;
+  bool isMate = false;
+  int mateIn = 0;
+  int hashfull = 0;
 
-    void clear() {
-        depth = seldepth = score = time = mateIn = hashfull = 0;
-        nodes = tbhits = nps = 0;
-        isMate = false;
-        pv.clear();
-    }
+  void clear() {
+    depth = seldepth = score = time = mateIn = hashfull = 0;
+    nodes = tbhits = nps = 0;
+    isMate = false;
+    pv.clear();
+  }
 };
 
 // ==================== SEARCH CLASS ====================
 /*------------------------------------------
 | so this find the best move by exploring game tree and also this
-| this manages all move generation evaluation time control move ordering communication with GUI
+| this manages all move generation evaluation time control move ordering
+communication with GUI
 */
 
 class Searcher {
 public:
-    // constructor
-    explicit Searcher(Position& pos, TranspositionTable& tt);
+  // constructor
+  explicit Searcher(Position &pos, TranspositionTable &tt);
 
-    // start search with given limits and return best move found
-    Move think(const SearchLimits& limits);
+  // start search with given limits and return best move found
+  Move think(const SearchLimits &limits);
 
-    void stop() { stopFlag = true; }
-    //reset the internal state for a new game
-    void newGame();
+  void stop() { stopFlag = true; }
+  // reset the internal state for a new game
+  void newGame();
 
-    void clearHistory(){
-        for(int c=0;c<2;++c){
-            for(int f=0;f<64;++f){
-                for(int t=0;t<64;t++){
-                    history[c][f][t]=0;
-                    counterMoves[c][f][t]=NO_MOVE;
-                }
-            }
+  void clearHistory() {
+    for (int c = 0; c < 2; ++c) {
+      for (int f = 0; f < 64; ++f) {
+        for (int t = 0; t < 64; t++) {
+          history[c][f][t] = 0;
+          counterMoves[c][f][t] = NO_MOVE;
         }
+      }
     }
+  }
+
 private:
-    // --- search algorithm ---
-    //negamax with alpha-beta pruning and PV node
-    template <Color Us, bool PvNode>
-    int pvs(int depth, int ply, int alpha, int beta, bool cutNode,Move previousMove);
+  // --- search algorithm ---
+  // negamax with alpha-beta pruning and PV node
+  template <Color Us, bool PvNode>
+  int pvs(int depth, int ply, int alpha, int beta, bool cutNode,
+          Move previousMove);
 
-    //extend search at leaf of tree for avoiding horizon effect
-    template <Color Us>
-    int quiescence(int alpha, int beta, int ply);
+  // extend search at leaf of tree for avoiding horizon effect
+  template <Color Us> int quiescence(int alpha, int beta, int ply);
 
-    // main search loop
-    void iterative_deepening();
+  // main search loop
+  void iterative_deepening();
 
-    //checks search should be stop due to time constrint
-    void check_time();
+  // initialize the LMR reduction table
+  void initLmrTable();
 
-    //update uci info for uci output
-    void update_uci_info(int depth, int score, const PVLine& pv);
+  // age history scores (halve) before each search
+  void ageHistory();
 
-    //functions for draw(for repetition,50-move rule)
-    bool is_draw(int ply) const;
+  // checks search should be stop due to time constrint
+  void check_time();
 
-    //for history heuristics
-    int history[2][64][64];  //[color][fromsqu][tosqu]
-    Move counterMoves[2][64][64];
-    
-    // --- DATA MEMBERS ---
-    Position& pos;
-    TranspositionTable& tt;
+  // update uci info for uci output
+  void update_uci_info(int depth, int score, const PVLine &pv);
 
-    Evaluator eval;
-    MoveGenerator gen;
-    TimeManager tm;
-    MoveOrderer orderer;
+  // functions for draw(for repetition,50-move rule)
+  bool is_draw(int ply) const;
 
-    // Search state
-    std::atomic<bool> stopFlag;
-    SearchLimits limits; //current search constraint
-    SearchInfo info; //current search statistics
-    std::chrono::steady_clock::time_point startTime;
-    uint64_t nodes;
-    int selDepth; 
+  // for history heuristics
+  int history[2][64][64]; //[color][fromsqu][tosqu]
 
-    // per ply data for deep search
-    SearchStack stack[MAX_PLY + 10];
+  // Pre computed LMR reduction table [depth][moveNumber]
+  int lmrTable[64][64];
+  Move counterMoves[2][64][64];
+
+  // --- DATA MEMBERS ---
+  Position &pos;
+  TranspositionTable &tt;
+
+  Evaluator eval;
+  MoveGenerator gen;
+  TimeManager tm;
+  MoveOrderer orderer;
+
+  // Search state
+  std::atomic<bool> stopFlag;
+  SearchLimits limits; // current search constraint
+  SearchInfo info;     // current search statistics
+  std::chrono::steady_clock::time_point startTime;
+  uint64_t nodes;
+  int selDepth;
+
+  // per ply data for deep search
+  SearchStack stack[MAX_PLY + 10];
 };
 
 } // namespace Search
