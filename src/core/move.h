@@ -82,6 +82,33 @@ private:
 
 extern const Move NO_MOVE;
 
-// A list of move
-using MoveList = std::vector<Move>;
+// Stack-allocated move list — avoids heap allocation in the search hot path
+// Maximum legal moves in any chess position is ~218, 256 gives headroom
+class MoveList {
+public:
+    static constexpr int MAX_MOVES = 256;
+
+    MoveList() : count(0) {}
+
+    void clear() { count = 0; }
+    void push_back(Move m) { moves[count++] = m; }
+
+    int size() const { return count; }
+    bool empty() const { return count == 0; }
+
+    Move& operator[](int i) { return moves[i]; }
+    const Move& operator[](int i) const { return moves[i]; }
+
+    Move* begin() { return moves; }
+    Move* end() { return moves + count; }
+    const Move* begin() const { return moves; }
+    const Move* end() const { return moves + count; }
+
+    // no-op for compatibility with old vector code
+    void reserve(int) {}
+
+private:
+    Move moves[MAX_MOVES];
+    int count;
+};
 

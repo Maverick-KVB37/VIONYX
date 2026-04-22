@@ -502,43 +502,30 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
     }
   }
 
+  // Move generation: when in check generate all moves, otherwise only captures+promotions
   MoveList movelist;
-  gen.generate_all_moves<c>(pos, movelist);
-  if (movelist.empty()) {
-    return inCheck ? (-MATE_SCORE + ply) : 0; // CHECKMATE OR STALEMATE
-  }
-
-  // filter interserting moves
-  MoveList interestingMoves;
-  interestingMoves.reserve(movelist.size());
-
   if (inCheck) {
-    interestingMoves = movelist;
+    gen.generate_all_moves<c>(pos, movelist);
   } else {
-    // only capture and promotion
-    for (const auto &move : movelist) {
-      if (move.is_capture() || move.is_promotion()) {
-        interestingMoves.push_back(move);
-      }
-    }
+    gen.generate_captures<c>(pos, movelist);
   }
 
-  if (interestingMoves.empty()) {
-    return alpha;
+  if (movelist.empty()) {
+    return inCheck ? (-MATE_SCORE + ply) : alpha;
   }
 
-  // sort only the interesting move
+  // Sort moves for ordering
   if (inCheck) {
     Move ttMove = NO_MOVE;
-    orderer.scoreMoves(pos, interestingMoves, ttMove, stack[ply].killers,
+    orderer.scoreMoves(pos, movelist, ttMove, stack[ply].killers,
                        history, NO_MOVE, counterMoves);
   } else {
-    orderer.scoreCaptures(pos, interestingMoves);
+    orderer.scoreCaptures(pos, movelist);
   }
 
   // now iterate
   int legalMoves = 0;
-  for (const Move &move : interestingMoves) {
+  for (const Move &move : movelist) {
     // Make the move
     pos.makemove<c>(move);
 

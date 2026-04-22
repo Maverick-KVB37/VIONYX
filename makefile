@@ -15,13 +15,16 @@ CXXFLAGS_DEBUG = $(CXXFLAGS_BASE) -g -O0
 # Default: optimized
 CXXFLAGS = $(CXXFLAGS_OPT)
 
+# Linker flags — MUST include -flto for LTO to actually work at link time
+LDFLAGS = -flto
+
 # Directories
 SRC_DIR := src
 BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVEBUGFIX3
+TARGET := $(BIN_DIR)/ASTROVEBUGFIXC++
 
 all: $(TARGET)
 

@@ -6,7 +6,7 @@
 #include <vector>
 
 // list of moves
-using MoveList = std::vector<Move>;
+// MoveList is now defined in ../core/move.h as a stack-allocated class
 
 class MoveGenerator {
 public:
@@ -19,6 +19,17 @@ public:
         generate_king_moves<c>(pos, moves);
         generate_sliding_moves<c>(pos, moves);
         generate_castling_moves<c>(pos, moves);
+    }
+
+    // Generate only captures and promotions — for quiescence search
+    template<Color c>
+    void generate_captures(const Position& pos, MoveList& moves) {
+        moves.clear();
+
+        generate_pawn_captures<c>(pos, moves);
+        generate_knight_captures<c>(pos, moves);
+        generate_king_captures<c>(pos, moves);
+        generate_sliding_captures<c>(pos, moves);
     }
 
 private:
@@ -222,4 +233,107 @@ void generate_pawn_moves(const Position& pos,MoveList& moves){
     }
 }
 
+// ============= CAPTURE-ONLY GENERATORS =============
+
+template <Color c>
+void generate_knight_captures(const Position& pos, MoveList& moves) {
+    Bitboard knights = pos.knights<c>();
+    Bitboard enemy = pos.occupancy(~c);
+
+    while (knights) {
+        Square from = poplsb(knights);
+        Bitboard captures = Attacks::get_knight_attacks(from) & enemy;
+        while (captures) {
+            Square to = poplsb(captures);
+            moves.push_back(Move(from, to, Capture));
+        }
+    }
+}
+
+template <Color c>
+void generate_king_captures(const Position& pos, MoveList& moves) {
+    Bitboard kings = pos.kings<c>();
+    Bitboard enemy = pos.occupancy(~c);
+
+    while (kings) {
+        Square from = poplsb(kings);
+        Bitboard captures = Attacks::get_king_attacks(from) & enemy;
+        while (captures) {
+            Square to = poplsb(captures);
+            moves.push_back(Move(from, to, Capture));
+        }
+    }
+}
+
+template <Color c>
+void generate_sliding_captures(const Position& pos, MoveList& moves) {
+    const Bitboard occupancy = pos.occupancy();
+    const Bitboard friendly = pos.occupancy(c);
+    const Bitboard enemy = pos.occupancy(~c);
+
+    auto generate_for_slider = [&](Bitboard pieces, auto get_attacks_func) {
+        while (pieces) {
+            Square from = poplsb(pieces);
+            Bitboard captures = get_attacks_func(from, occupancy) & ~friendly & enemy;
+            while (captures) {
+                moves.push_back(Move(from, poplsb(captures), Capture));
+            }
+        }
+    };
+
+    generate_for_slider(pos.bishops<c>(), Attacks::get_bishop_attacks);
+    generate_for_slider(pos.rooks<c>(), Attacks::get_rook_attacks);
+    generate_for_slider(pos.queens<c>(), Attacks::get_queen_attacks);
+}
+
+template <Color c>
+void generate_pawn_captures(const Position& pos, MoveList& moves) {
+    Bitboard pawns = pos.pawns<c>();
+    Bitboard enemy = pos.occupancy(~c);
+    Bitboard empty = ~pos.occupancy();
+
+    int forward = (c == White) ? 8 : -8;
+    int promotionrank = (c == White) ? 6 : 1;
+
+    while (pawns) {
+        Square from = poplsb(pawns);
+        int fromrank = from / 8;
+
+        // Promotion pushes (these are as good as captures)
+        if (fromrank == promotionrank) {
+            Square to = Square(from + forward);
+            if (empty & (1ULL << to)) {
+                moves.push_back(Move(from, to, QueenPromotion));
+                moves.push_back(Move(from, to, RookPromotion));
+                moves.push_back(Move(from, to, BishopPromotion));
+                moves.push_back(Move(from, to, KnightPromotion));
+            }
+        }
+
+        // Captures
+        Bitboard attacks = Attacks::get_pawn_attacks(c, from) & enemy;
+        while (attacks) {
+            Square capSq = poplsb(attacks);
+            if (fromrank == promotionrank) {
+                moves.push_back(Move(from, capSq, QueenPromoCapture));
+                moves.push_back(Move(from, capSq, RookPromoCapture));
+                moves.push_back(Move(from, capSq, BishopPromoCapture));
+                moves.push_back(Move(from, capSq, KnightPromoCapture));
+            } else {
+                moves.push_back(Move(from, capSq, Capture));
+            }
+        }
+
+        // En passant
+        Square epSq = pos.epSquare();
+        if (epSq != NO_SQ) {
+            Bitboard epAttack = Attacks::get_pawn_attacks(c, from) & (1ULL << epSq);
+            if (epAttack) {
+                moves.push_back(Move(from, epSq, EnPassant));
+            }
+        }
+    }
+}
+
 };
+

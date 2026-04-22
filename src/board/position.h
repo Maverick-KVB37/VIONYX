@@ -120,8 +120,9 @@ private:
     StateInfo stateStack[1024];
     uint16_t stateCount;
     
-    // Position history for repetition detection
-    std::vector<uint64_t> positionHistory;
+    // Position history for repetition detection (fixed-size, no heap alloc)
+    uint64_t positionHistory[1024];
+    int historyCount = 0;
     uint16_t fullMoveCounter;
 
     // Helper functions
@@ -422,7 +423,7 @@ void Position::makemove(Move move){
     toggleSide();
 
     // Record position for repetition detection (after all hash updates)
-    positionHistory.push_back(state->hashKey);
+    positionHistory[historyCount++] = state->hashKey;
     
     // 14. INCREMENT FULLMOVE
     if (stm == White) {
@@ -509,22 +510,22 @@ void Position::unmakemove(Move move){
     stateCount--;
     
     //pop from pos history
-    positionHistory.pop_back();
+    historyCount--;
 }
 
 
 inline bool Position::isDrawByRepetition(int ply) const {
     // Need at least 4 half-moves for a repetition to be possible
-    if (positionHistory.size() < 4) return false;
+    if (historyCount < 4) return false;
 
     // Calculate ply of last irreversible move (pawn move or capture)
-    int irreversibleMovePly = static_cast<int>(positionHistory.size()) - 1 - static_cast<int>(state->halfMoveClock);
+    int irreversibleMovePly = historyCount - 1 - static_cast<int>(state->halfMoveClock);
     if (irreversibleMovePly < 0) irreversibleMovePly = 0;
 
     int repetitions = 0;
-    // Current position is at positionHistory[size()-1].
-    // Same-side positions (potential repeats) are at size()-3, size()-5, etc.
-    for (int i = static_cast<int>(positionHistory.size()) - 3; i >= irreversibleMovePly; i -= 2) {
+    // Current position is at positionHistory[historyCount-1].
+    // Same-side positions (potential repeats) are at historyCount-3, historyCount-5, etc.
+    for (int i = historyCount - 3; i >= irreversibleMovePly; i -= 2) {
         if (positionHistory[i] == state->hashKey) {
             repetitions++;
             // Twofold repetition inside search (ply > 0) treated as draw to avoid infinite loops
@@ -569,14 +570,14 @@ inline void Position::makeNullMove(){
     stm=~c;
     toggleSide();
 
-    positionHistory.push_back(state->hashKey);
+    positionHistory[historyCount++] = state->hashKey;
 }
 
 template <Color c>
 inline void Position::unmakeNullMove(){
 
-    if(!positionHistory.empty()){
-        positionHistory.pop_back();
+    if(historyCount > 0){
+        historyCount--;
     }
     
     if (state->previous == nullptr) return;

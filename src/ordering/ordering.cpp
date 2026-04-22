@@ -141,8 +141,7 @@ bool MoveOrderer::seeGe(const Position& pos, Move move, int threshold) {
 void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2],const int history[2][64][64],Move prevMove,const Move counterMoves[2][64][64]) {
    // std::cerr << "DEBUG: scoreMoves entered, moves.size=" << moves.size() << "\n";
 
-    scores.clear();
-    scores.resize(moves.size());
+    // scores is a fixed array, no allocation needed
     
     //find counter move
     Move counterMove=NO_MOVE;
@@ -150,7 +149,7 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         counterMove=counterMoves[pos.sideToMove()][prevMove.from()][prevMove.to()];
     }
 
-    for (size_t i = 0; i < moves.size(); i++) {
+    for (int i = 0; i < moves.size(); i++) {
         //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
 
         const Move& move = moves[i];
@@ -204,9 +203,9 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         }
     }
     
-    for (size_t i = 0; i < moves.size(); ++i) {  // Add safety limit
-        size_t bestIdx = i;
-        for (size_t j = i + 1; j < moves.size(); ++j) {  // Add safety limit
+    for (int i = 0; i < moves.size(); ++i) {
+        int bestIdx = i;
+        for (int j = i + 1; j < moves.size(); ++j) {
             if (scores[j] > scores[bestIdx]) {
                 bestIdx = j;
             }
@@ -222,18 +221,17 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
 }
 
 void MoveOrderer::scoreCaptures(const Position& pos, MoveList& captures) {
-    scores.clear();
-    scores.resize(captures.size());
+    // scores is a fixed array, no allocation needed
     
-    for (size_t i = 0; i < captures.size(); i++) {
+    for (int i = 0; i < captures.size(); i++) {
         const Move& move = captures[i];
         scores[i] = see(pos, move);
     }
     
     // Sort captures by SEE value
-    for (size_t i = 0; i < captures.size(); ++i) {
-        size_t bestIdx=i;
-        for (size_t j = i + 1; j < captures.size(); ++j) {
+    for (int i = 0; i < captures.size(); ++i) {
+        int bestIdx=i;
+        for (int j = i + 1; j < captures.size(); ++j) {
             if (scores[j] > scores[bestIdx]) {
                 bestIdx=j;
             }

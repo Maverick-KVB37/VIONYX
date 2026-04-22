@@ -21,18 +21,18 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 ### Estimated Rating
 
-# **~2508 Elo**
+# **~2597 Elo**
 
-*Measured via self-play SPRT against previous version (2401 Elo baseline)*
+*Measured via SPRT against SF2500 baseline*
 
 </td>
 <td>
 
 | Metric | Value |
 |:--|:--|
-| **Score vs Astrove 2400** | **88W – 29L – 81D** |
-| **Win Rate** | **64.9%** |
-| **Elo Difference** | **+106.8 ± 37.8** |
+| **Score vs SF2500** | **208W – 111L – 36D** |
+| **Win Rate** | **63.7%** |
+| **Elo Difference** | **+97.4 ± 35.6** |
 | **LOS** | **100.0%** |
 | **SPRT Result** |  **H1 Accepted** |
 
@@ -42,17 +42,17 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 ---
 
-## Benchmark: Phase 1 Bug Fixes & Quick Wins
+## Benchmark: C++ & MoveGen Speed Optimizations
 
-198 games · Time Control `8+0.08` · Opening Book `noob_3moves.epd` · SPRT `elo0=0 elo1=5 α=0.05 β=0.05`
+355 games · Time Control `10+0.1` · Opening Book `noob_3moves.epd` · SPRT `elo0=0 elo1=10 α=0.05 β=0.05`
 
-```
-Score of Astrove_NEW vs Astrove_OLD: 88 - 29 - 81  [0.649] 198
-...      Astrove_NEW playing White: 39 - 14 - 46  [0.626] 99
-...      Astrove_NEW playing Black: 49 - 15 - 35  [0.672] 99
-...      White vs Black: 54 - 63 - 81  [0.477] 198
-Elo difference: 106.8 +/- 37.8, LOS: 100.0 %, DrawRatio: 40.9 %
-SPRT: llr 2.98 (101.4%), lbound -2.94, ubound 2.94 - H1 was accepted
+```text
+Score of Astrove vs SF2500: 208 - 111 - 36  [0.637] 355
+...      Astrove playing White: 97 - 59 - 21  [0.607] 177
+...      Astrove playing Black: 111 - 52 - 15  [0.666] 178
+...      White vs Black: 149 - 170 - 36  [0.470] 355
+Elo difference: 97.4 +/- 35.6, LOS: 100.0 %, DrawRatio: 10.1 %
+SPRT: llr 2.97 (101.0%), lbound -2.94, ubound 2.94 - H1 was accepted
 ```
 
 <details>
@@ -72,14 +72,10 @@ SPRT: llr 2.98 (101.4%), lbound -2.94, ubound 2.94 - H1 was accepted
 
 </details>
 
-### Phase 1 Improvements
-* **Aspiration Windows:** Exponential widening with delta=25.
-* **LMR:** Logarithmic reduction table `0.75 + log(d)*log(m)/2.25`.
-* **Improving Flag:** Calibrates RFP margin, NMP reduction, LMP threshold based on static evaluation progress.
-* **History Malus:** Gravity-based update for quiet moves that fail to cut.
-* **History Aging:** Halving history scores before each iterative deepening step.
-
----
+### Phase 2 Improvements (Speed & Memory Optimizations)
+* **Zero-Heap Allocations:** Replaced all instances of `std::vector` with fixed-size stack arrays for `MoveList`, move ordering `scores`, and `positionHistory`. This completely eliminates dynamic memory allocation overhead during the search.
+* **Quiescence Move Generation:** Implemented a dedicated `generate_captures()` function. Quiescence search now directly generates only captures and Queen promotions, entirely skipping the overhead of generating and filtering out quiet moves.
+* **Link-Time Optimization (LTO):** Corrected `Makefile` linking stage flags (`LDFLAGS = -flto`) to ensure aggressive cross-file function inlining, drastically reducing per-node function call overhead.
 
 ## Architecture
 

@@ -21,7 +21,7 @@ public:
     bool seeGe(const Position& pos, Move move, int threshold);
 
     // Storage for scores during sorting
-    std::vector<int> scores;
+    int scores[256];
 private:
     static constexpr int SEEVALUE[6] = {100, 325, 335, 500, 975, 0};
 

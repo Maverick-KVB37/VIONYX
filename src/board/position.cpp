@@ -82,7 +82,7 @@ void Position::parseFEN(const std::string& FEN) {
     // Reset board
     std::fill(std::begin(PiecesBB), std::end(PiecesBB), EMPTY_BB);
     std::fill(std::begin(board), std::end(board), None);
-    positionHistory.clear();
+    historyCount = 0;
     // Initialize first state
     stateCount = 1;
     state = &stateStack[0];
