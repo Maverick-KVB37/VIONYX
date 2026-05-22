@@ -263,7 +263,7 @@ make clean
 
 ```
 > uci
-id name ASTROVE
+id name Astrove 2.0
 id author Kirti Vardhan Bhushan
 uciok
 

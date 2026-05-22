@@ -29,7 +29,7 @@ void UCI::uciLoop() {
     iss >> command;
 
     if (command == "uci") {
-      std::cout << "id name Astrove\n";
+      std::cout << "id name Astrove 2.0\n";
       std::cout << "id author Kirti Vardhan Bhushan\n";
       std::cout << "uciok\n";
     } else if (command == "isready") {
