@@ -8,9 +8,9 @@ U64 perft(Position& pos, int depth, MoveGenerator& gen) {
 
     MoveList moves;
     if (pos.sideToMove() == White) {
-        gen.generate_all_moves<White>(pos, moves);
+        gen.GenerateAllMoves<White>(pos, moves);
     } else {
-        gen.generate_all_moves<Black>(pos, moves);
+        gen.GenerateAllMoves<Black>(pos, moves);
     }
 
     U64 nodes = 0;
@@ -42,9 +42,9 @@ void perftDivide(Position& pos, int depth, MoveGenerator& gen) {
 
     MoveList moves;
     if (pos.sideToMove() == White) {
-        gen.generate_all_moves<White>(pos, moves);
+        gen.GenerateAllMoves<White>(pos, moves);
     } else {
-        gen.generate_all_moves<Black>(pos, moves);
+        gen.GenerateAllMoves<Black>(pos, moves);
     }
 
     U64 totalNodes = 0;
@@ -55,7 +55,7 @@ void perftDivide(Position& pos, int depth, MoveGenerator& gen) {
             pos.makemove<White>(move);
             if (!pos.isSquareAttacked<Black>(pos.kingsq<White>())) {
                 U64 childNodes = perft(pos, depth - 1, gen);
-                std::cout << move.to_uci_string() << ": " << childNodes << "\n";
+                std::cout << move.ToUciString() << ": " << childNodes << "\n";
                 totalNodes += childNodes;
             }
             pos.unmakemove<White>(move);
@@ -63,7 +63,7 @@ void perftDivide(Position& pos, int depth, MoveGenerator& gen) {
             pos.makemove<Black>(move);
             if (!pos.isSquareAttacked<White>(pos.kingsq<Black>())) {
                 U64 childNodes = perft(pos, depth - 1, gen);
-                std::cout << move.to_uci_string() << ": " << childNodes << "\n";
+                std::cout << move.ToUciString() << ": " << childNodes << "\n";
                 totalNodes += childNodes;
             }
             pos.unmakemove<Black>(move);
@@ -124,11 +124,9 @@ void runPerftTests() {
             else
                 std::cout << "  [FAIL]";
             
-            // Print timing info
             std::cout << " | Time: " << std::setw(8) << std::fixed << std::setprecision(2) 
                       << timeSeconds << "s";
             
-            // Print NPS in human-readable format
             if (nps >= 1000000)
                 std::cout << " | NPS: " << std::setw(7) << std::fixed << std::setprecision(2) 
                           << (nps / 1000000.0) << " MNPS";
@@ -155,4 +153,3 @@ void runPerftTests() {
               << (avgNPS / 1000000.0) << " MNPS\n";
     std::cout << "=================================================\n";
 }
-

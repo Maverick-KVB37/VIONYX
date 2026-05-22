@@ -4,12 +4,9 @@
 #include <string>
 #include <vector>
 
-// Bits 0-5:   'from' square
-// Bits 6-11:  'to' square
-// Bits 12-15: flags (promotion, capture, etc)
+// bits 0-5: from square, bits 6-11: to square, bits 12-15: flags
 using MoveData = uint16_t;
 
-// --- Move Flags ---
 enum MoveFlag : MoveData {
     QuietMove    = 0,
     DoublePawnPush = 1,
@@ -18,7 +15,7 @@ enum MoveFlag : MoveData {
     Capture      = 4,
     EnPassant    = 5,
     
-    // Promotions are flags 8-15
+    // promotions 8-15
     KnightPromotion = 8,
     BishopPromotion = 9,
     RookPromotion   = 10,
@@ -31,32 +28,27 @@ enum MoveFlag : MoveData {
 
 class Move {
 public:
-    // Constructors
     Move() : m_data(0) {}
     explicit Move(MoveData data) : m_data(data) {}
     Move(Square from, Square to, MoveFlag flag);
 
-    // Getters
     constexpr Square from() const { return Square(m_data & 0x3f); }
     constexpr Square to() const { return Square((m_data >> 6) & 0x3f); }
     constexpr MoveFlag flag() const { return MoveFlag((m_data >> 12) & 0xf); }
-    bool is_valid() const { return m_data != 0; }
-    // Helpers
-    constexpr bool is_capture() const { return (flag() &0x4)!=0; }
-    constexpr bool is_promotion() const { return (flag() >= KnightPromotion); }
-    constexpr bool is_enpassant() const { return flag() == EnPassant; }
-    constexpr bool is_castle() const { return flag() == KingCastle || flag() == QueenCastle; }
+    bool IsValid() const { return m_data != 0; }
 
-    //for comparing two moves
+    constexpr bool IsCapture() const { return (flag() &0x4)!=0; }
+    constexpr bool IsPromotion() const { return (flag() >= KnightPromotion); }
+    constexpr bool IsEnpassant() const { return flag() == EnPassant; }
+    constexpr bool IsCastle() const { return flag() == KingCastle || flag() == QueenCastle; }
+
     constexpr bool operator==(const Move& other) const { return m_data == other.m_data; }
     constexpr bool operator!=(const Move& other) const { return m_data != other.m_data; }
     
-    // Utility
-    std::string to_uci_string() const;
+    std::string ToUciString() const;
 
-    // Get the promoted piece type (only valid if is_promotion() returns true)
-    constexpr PieceType promoted_piece_type() const {
-        if (!is_promotion()) return Nonetype;
+    constexpr PieceType PromotedPieceType() const {
+        if (!IsPromotion()) return Nonetype;
         
         MoveFlag f = flag();
         switch (f) {
@@ -82,8 +74,7 @@ private:
 
 extern const Move NO_MOVE;
 
-// Stack-allocated move list — avoids heap allocation in the search hot path
-// Maximum legal moves in any chess position is ~218, 256 gives headroom
+// stack-allocated move list (max legal moves ~218, 256 gives headroom)
 class MoveList {
 public:
     static constexpr int MAX_MOVES = 256;
@@ -91,7 +82,7 @@ public:
     MoveList() : count(0) {}
 
     void clear() { count = 0; }
-    void push_back(Move m) { moves[count++] = m; }
+    void Add(Move m) { moves[count++] = m; }
 
     int size() const { return count; }
     bool empty() const { return count == 0; }
@@ -104,11 +95,9 @@ public:
     const Move* begin() const { return moves; }
     const Move* end() const { return moves + count; }
 
-    // no-op for compatibility with old vector code
-    void reserve(int) {}
+    void reserve(int) {} // no-op for compat
 
 private:
     Move moves[MAX_MOVES];
     int count;
 };
-

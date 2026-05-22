@@ -4,7 +4,7 @@
 #include <vector>
 #include <map>
 
-// ========== BASIC TYPE DEFINITION ===============
+// --- basic types ---
 
 typedef uint64_t U64;
 typedef uint32_t U32;
@@ -16,13 +16,12 @@ typedef int32_t I32;
 typedef int16_t I16;
 typedef int8_t  I8;
 
-// =========== DEFINITION ============
 typedef U64 Bitboard;
 typedef U64 Key;
 typedef I32 Value;
 typedef I32 Depth;
 
-// =========== ENUM =============
+// --- enums ---
 
 enum Color : I8 {
     White, Black
@@ -72,10 +71,10 @@ enum Rank : I8 {
 
 enum CastlingRights : int {
     NO_CASTLING = 0,
-    WHITE_OO    = 1,   // White kingside  (1 << 0)
-    WHITE_OOO   = 2,   // White queenside (1 << 1)
-    BLACK_OO    = 4,   // Black kingside  (1 << 2)
-    BLACK_OOO   = 8,   // Black queenside (1 << 3)
+    WHITE_OO    = 1,
+    WHITE_OOO   = 2,
+    BLACK_OO    = 4,
+    BLACK_OOO   = 8,
     
     WHITE_CASTLING = WHITE_OO | WHITE_OOO,
     BLACK_CASTLING = BLACK_OO | BLACK_OOO,
@@ -84,8 +83,6 @@ enum CastlingRights : int {
     CASTLING_RIGHTS_NB = 16
 };
 
-
-//------ CONSTANTS ---------
 const std::string squareToString[65] = {
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
     "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
@@ -95,13 +92,11 @@ const std::string squareToString[65] = {
     "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-    "-" // for NO_SQ
+    "-" // NO_SQ
 };
 
+// --- operators ---
 
-// ============= OPEERATORS ==============
-
-// Color operators
 constexpr Color operator~(Color c) {
     return Color(c ^ Black);
 }
@@ -109,7 +104,6 @@ constexpr Color operator++(Color c){
     return static_cast<Color>(static_cast<int>(c) + 1);
 }
 
-// Square operators
 constexpr Square operator+(Square s, int i) { return Square(int(s) + i); }
 constexpr Square operator-(Square s, int i) { return Square(int(s) - i); }
 inline Square& operator+=(Square& s, int i) { return s = Square(int(s) + i); }
@@ -117,18 +111,15 @@ inline Square& operator-=(Square& s, int i) { return s = Square(int(s) - i); }
 inline Square& operator++(Square& s) { return s = Square(int(s) + 1); }
 inline Square& operator--(Square& s) { return s = Square(int(s) - 1); }
 
-// Direction operators
 constexpr Square operator+(Square s, Direction d) { return Square(int(s) + int(d)); }
 constexpr Square operator-(Square s, Direction d) { return Square(int(s) - int(d)); }
 inline Square& operator+=(Square& s, Direction d) { return s = Square(int(s) + int(d)); }
 inline Square& operator-=(Square& s, Direction d) { return s = Square(int(s) - int(d)); }
 
-// Piece operators
 constexpr Piece operator~(Piece pc) {
-    return Piece(pc ^ 6); // Swap color: 0-5 ↔ 6-11
+    return Piece(pc ^ 6); // swap color: 0-5 <-> 6-11
 }
 
-// Increment operators
 #define ENABLE_INCR_OPERATORS_ON(T)                     \
 inline T& operator++(T& d) { return d = T(int(d) + 1); }\
 inline T& operator--(T& d) { return d = T(int(d) - 1); }
@@ -140,14 +131,13 @@ ENABLE_INCR_OPERATORS_ON(Rank)
 
 #undef ENABLE_INCR_OPERATORS_ON
 
-//for tapered eval to hold MG AND EG
+//tapered eval score (mg + eg)
 struct S{
     int mg;
     int eg;
 
-    //constructor
     constexpr S(int m=0,int e=0):mg(m),eg(e){}
-    //now operator overloading
+
     S& operator+=(const S& other){
         mg+=other.mg;
         eg+=other.eg;

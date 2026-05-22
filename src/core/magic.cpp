@@ -3,25 +3,22 @@
 
 namespace Astrove::magic{
 
-    // --- Definitions for the extern variables from the header ---
     Bitboard bishop_masks[64];
     Bitboard rook_masks[64];
-    Bitboard bishop_attacks[64][512]; // 2^9 = 512, max relevant bits for bishops is 9
-    Bitboard rook_attacks[64][4096];  // 2^12 = 4096, max relevant bits for rooks is 12
+    Bitboard bishop_attacks[64][512];
+    Bitboard rook_attacks[64][4096];
 
-    // Generates all permutations of blockers for a given mask
+    // blocker permutation for a given mask
     inline Bitboard get_blocker_permutation(int index, int bits, Bitboard mask) {
         Bitboard blockers = 0ULL;
-        int bit_indices[12]; // Max 12 bits for rooks
+        int bit_indices[12];
     
-        // Extract all bit positions from the mask
         Bitboard temp_mask = mask;
         for (int i = 0; i < bits; ++i) {
-            bit_indices[i] = __builtin_ctzll(temp_mask); // Count trailing zeros (LSB position)
-            temp_mask &= temp_mask - 1; // Clear the LSB
+            bit_indices[i] = __builtin_ctzll(temp_mask);
+            temp_mask &= temp_mask - 1;
         }
     
-        // Set bits according to the index
         for (int i = 0; i < bits; ++i) {
             if (index & (1 << i)) {
             blockers |= (1ULL << bit_indices[i]);
@@ -30,7 +27,6 @@ namespace Astrove::magic{
         return blockers;
     }
 
-    // Generates bishop attack masks, excluding the outer board edges
     Bitboard generate_bishop_mask(Square sq) {
         Bitboard attacks = 0ULL;
         int r, f;
@@ -43,7 +39,6 @@ namespace Astrove::magic{
         return attacks;
     }
 
-    // Generates rook attack masks, excluding the outer board edges
     Bitboard generate_rook_mask(Square sq) {
         Bitboard attacks = 0ULL;
         int r, f;
@@ -56,7 +51,6 @@ namespace Astrove::magic{
         return attacks;
     }
 
-    // Generates bishop attacks "on the fly" to populate the table
     Bitboard generate_bishop_attacks_on_the_fly(Square sq, Bitboard blockers) {
         Bitboard attacks = 0ULL;
         int r, f;
@@ -81,7 +75,6 @@ namespace Astrove::magic{
         return attacks;
     }
 
-    // Generates rook attacks "on the fly" to populate the table
     Bitboard generate_rook_attacks_on_the_fly(Square sq, Bitboard blockers) {
         Bitboard attacks = 0ULL;
         int r, f;
@@ -106,16 +99,14 @@ namespace Astrove::magic{
         return attacks;
     }
 
-    // --- Public initialization function ---
     void init() {
         for (int sq_int = 0; sq_int < 64; ++sq_int) {
             Square sq = static_cast<Square>(sq_int);
 
-            // --- Generate masks ---
             bishop_masks[sq_int] = generate_bishop_mask(sq);
             rook_masks[sq_int] = generate_rook_mask(sq);
 
-            // --- Populate bishop attacks ---
+            // populate bishop attacks
             int bishop_bits = bishop_relevant_bits[sq_int];
             int bishop_permutations = 1 << bishop_bits;
             for (int i = 0; i < bishop_permutations; ++i) {
@@ -126,7 +117,7 @@ namespace Astrove::magic{
                 bishop_attacks[sq_int][magic_index] = on_the_fly_attacks;
             }
 
-            // --- Populate rook attacks ---
+            // populate rook attacks
             int rook_bits = rook_relevant_bits[sq_int];
             int rook_permutations = 1 << rook_bits;
             for (int i = 0; i < rook_permutations; ++i) {

@@ -1,10 +1,7 @@
 #include "attacks.h"
 
-// The public namespace for attack functions.
 namespace Attacks {
 
-    // Define the actual storage for the pre-calculated tables.
-    // PASTE YOUR EXISTING ARRAYS FOR PAWNS, KNIGHTS, AND KINGS HERE.
     const Bitboard PAWN_ATTACKS[2][64] = { 
         // white pawn attacks
         { 0x200, 0x500, 0xa00, 0x1400,
@@ -80,8 +77,6 @@ namespace Attacks {
         0x2838000000000000, 0x5070000000000000, 0xA0E0000000000000, 0x40C0000000000000
     };
 
-    // The main initialization function.
-    // Its only job is to call the initializer for the magic bitboard module.
     void init() {
         Astrove::magic::init();
     }

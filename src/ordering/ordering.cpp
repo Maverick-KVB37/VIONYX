@@ -10,7 +10,7 @@ MoveOrderer::MoveOrderer(){
         }
     }
 }
-// Returns the bitboard of attackers of given color on square `sq`
+
 Bitboard MoveOrderer::attackersForSide(const Position& pos, Color attackerColor, Square sq, Bitboard occupiedBB) {
     Bitboard attackingBishops = pos.getPiecesBB(makepiece(attackerColor, Bishop));
     Bitboard attackingRooks   = pos.getPiecesBB(makepiece(attackerColor, Rook));
@@ -19,48 +19,44 @@ Bitboard MoveOrderer::attackersForSide(const Position& pos, Color attackerColor,
     Bitboard attackingKing    = pos.getPiecesBB(makepiece(attackerColor, King));
     Bitboard attackingPawns   = pos.getPiecesBB(makepiece(attackerColor, Pawn));
 
-    Bitboard diagonalAttacks = Attacks::get_bishop_attacks(sq, occupiedBB);
-    Bitboard orthogonalAttacks = Attacks::get_rook_attacks(sq, occupiedBB);
+    Bitboard diagonalAttacks = Attacks::GetBishopAttacks(sq, occupiedBB);
+    Bitboard orthogonalAttacks = Attacks::GetRookAttacks(sq, occupiedBB);
 
     Bitboard attackers = (diagonalAttacks & (attackingBishops | attackingQueens))
                        | (orthogonalAttacks & (attackingRooks | attackingQueens))
-                       | (Attacks::get_knight_attacks(sq) & attackingKnights)
-                       | (Attacks::get_king_attacks(sq) & attackingKing)
-                       | (Attacks::get_pawn_attacks(~attackerColor, sq) & attackingPawns);
+                       | (Attacks::GetKnightAttacks(sq) & attackingKnights)
+                       | (Attacks::GetKingAttacks(sq) & attackingKing)
+                       | (Attacks::GetPawnAttacks(~attackerColor, sq) & attackingPawns);
 
     return attackers;
 }
 
-// Returns xrays attackers on sq (excluding knights/kings)
 Bitboard MoveOrderer::considerXRays(const Position& pos, Square sq, Bitboard occupiedBB) {
     Bitboard attackingBishops = pos.bishops<White>() | pos.bishops<Black>();
     Bitboard attackingRooks   = pos.rooks<White>() | pos.rooks<Black>();
     Bitboard attackingQueens  = pos.queens<White>() | pos.queens<Black>();
 
-    Bitboard diagonalAttacks = Attacks::get_bishop_attacks(sq, occupiedBB);
-    Bitboard orthogonalAttacks = Attacks::get_rook_attacks(sq, occupiedBB);
+    Bitboard diagonalAttacks = Attacks::GetBishopAttacks(sq, occupiedBB);
+    Bitboard orthogonalAttacks = Attacks::GetRookAttacks(sq, occupiedBB);
 
     Bitboard attackers = (diagonalAttacks & (attackingBishops | attackingQueens))
                        | (orthogonalAttacks & (attackingRooks | attackingQueens));
     return attackers;
 }
 
-// Return all attackers on square sq by any side.
 Bitboard MoveOrderer::allAttackers(const Position& pos, Square sq, Bitboard occupiedBB) {
     return attackersForSide(pos, White, sq, occupiedBB)
          | attackersForSide(pos, Black, sq, occupiedBB);
 }
 
-// Find minimum value attacker bitboard and set attacker to its piece type.
 Bitboard MoveOrderer::minAttacker(const Position& pos, Bitboard attadef, Color color, PieceType& attacker) {
     for (attacker = Pawn; attacker <= King; attacker = PieceType(attacker + 1)) {
         Bitboard subset = attadef & pos.getPiecesBB(makepiece(color, attacker));
-        if (subset != 0) return (subset & -subset);  // Least significant bit
+        if (subset != 0) return (subset & -subset);
     }
     return 0ULL;
 }
 
-// Static Exchange Evaluation for a move.
 int MoveOrderer::see(const Position& pos, Move move) {
     Square fromSq = move.from();
     Square toSq = move.to();
@@ -106,7 +102,6 @@ int MoveOrderer::see(const Position& pos, Move move) {
     return gain[0];
 }
 
-// Quick check if SEE for move is >= threshold
 bool MoveOrderer::seeGe(const Position& pos, Move move, int threshold) {
     Square fromSq = move.from();
     Square toSq = move.to();
@@ -138,10 +133,7 @@ bool MoveOrderer::seeGe(const Position& pos, Move move, int threshold) {
     return see(pos, move) >= threshold;
 }
 
-void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2],const int history[2][64][64],Move prevMove,const Move counterMoves[2][64][64]) {
-   // std::cerr << "DEBUG: scoreMoves entered, moves.size=" << moves.size() << "\n";
-
-    // scores is a fixed array, no allocation needed
+void MoveOrderer::ScoreMoves(const Position& pos, MoveList& moves, Move ttMove, Move killers[2],const int history[2][64][64],Move prevMove,const Move counterMoves[2][64][64]) {
     
     //find counter move
     Move counterMove=NO_MOVE;
@@ -150,8 +142,6 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
     }
 
     for (int i = 0; i < moves.size(); i++) {
-        //std::cerr << "DEBUG: Scoring move " << i << "/" << moves.size() << "\n";
-
         const Move& move = moves[i];
         
         //TT move
@@ -160,12 +150,12 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         }
         
         //Captures
-        else if(move.is_capture()){
+        else if(move.IsCapture()){
             PieceType attacker = piecetype(pos.pieceAt(move.from()));
             PieceType victim = piecetype(pos.pieceAt(move.to()));
 
             //enpassant
-            if(move.is_enpassant()){
+            if(move.IsEnpassant()){
                 victim=Pawn;
             }
             if(victim!=Nonetype){
@@ -177,7 +167,7 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
         }
 
         //non-capture promotions (very valuable, almost always queen)
-        else if(move.is_promotion()){
+        else if(move.IsPromotion()){
             scores[i]=SCORE_CAPTURE_BASE+600;
         }
 
@@ -215,20 +205,15 @@ void MoveOrderer::scoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
             std::swap(scores[i], scores[bestIdx]);
         }
     }
-    
-    //std::cerr << "DEBUG: scoreMoves done\n";
-
 }
 
-void MoveOrderer::scoreCaptures(const Position& pos, MoveList& captures) {
-    // scores is a fixed array, no allocation needed
+void MoveOrderer::ScoreCaptures(const Position& pos, MoveList& captures) {
     
     for (int i = 0; i < captures.size(); i++) {
         const Move& move = captures[i];
         scores[i] = see(pos, move);
     }
     
-    // Sort captures by SEE value
     for (int i = 0; i < captures.size(); ++i) {
         int bestIdx=i;
         for (int j = i + 1; j < captures.size(); ++j) {
@@ -242,4 +227,3 @@ void MoveOrderer::scoreCaptures(const Position& pos, MoveList& captures) {
         }
     }
 }
-

@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge&logo=cplusplus&logoColor=white" alt="C++17"/>
   <img src="https://img.shields.io/badge/UCI-Compatible-green?style=for-the-badge" alt="UCI"/>
-  <img src="https://img.shields.io/badge/Elo-~2508-orange?style=for-the-badge" alt="Elo"/>
+  <img src="https://img.shields.io/badge/Elo-~2600-orange?style=for-the-badge" alt="Elo"/>
   <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -72,14 +72,6 @@ SPRT: llr 2.97 (101.0%), lbound -2.94, ubound 2.94 - H1 was accepted
 
 </details>
 
-### Phase 2 Improvements (Speed & Memory Optimizations)
-* **Zero-Heap Allocations:** Replaced all instances of `std::vector` with fixed-size stack arrays for `MoveList`, move ordering `scores`, and `positionHistory`. This completely eliminates dynamic memory allocation overhead during the search.
-* **Quiescence Move Generation:** Implemented a dedicated `generate_captures()` function. Quiescence search now directly generates only captures and Queen promotions, entirely skipping the overhead of generating and filtering out quiet moves.
-* **Link-Time Optimization (LTO):** Corrected `Makefile` linking stage flags (`LDFLAGS = -flto`) to ensure aggressive cross-file function inlining, drastically reducing per-node function call overhead.
-
-## Architecture
-
-ASTROVE is a modular, cleanly structured engine with **~5,000 lines of C++17** across **37 source files**.
 
 ```
 src/
@@ -93,12 +85,10 @@ src/
 │   └── zobrist.cpp/h      #   Zobrist hash key generation
 ├── board/                 # Position representation & move generation
 │   ├── position.cpp/h     #   Board state, make/unmake, FEN parsing
-│   ├── movegen.h          #   Legal move generator
-│   └── see.cpp/h          #   Static Exchange Evaluation
+│   └── movegen.h          #   Legal move generator
 ├── search/                # Search algorithm & time management
 │   ├── search.cpp/h       #   Iterative deepening + PVS + quiescence
-│   ├── timemanager.cpp/h  #   Adaptive time allocation
-│   └── thread.cpp/h       #   Thread management
+│   └── timemanager.cpp/h  #   Adaptive time allocation
 ├── evaluation/            # Hand-crafted evaluation (HCE)
 │   ├── evaluation.cpp/h   #   Tapered eval with all features
 │   └── psqt.cpp/h         #   Piece-square tables
@@ -131,7 +121,7 @@ src/
 ASTROVE's search is built on **Principal Variation Search (PVS)** with iterative deepening and a rich set of pruning techniques:
 
 ```
-iterative_deepening()
+IterativeDeepening()
 └── pvs<Color, PvNode>(depth, ply, α, β)       ← Negamax with PV/non-PV split
     ├── Transposition Table probe              ← Skip already-explored positions
     ├── Null Move Pruning                      ← R=3 reduction, skip non-PV nodes
@@ -229,7 +219,7 @@ Compatible with **Arena**, **CuteChess**, **Banksia**, **En Croissant**, and all
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ASTROVE.git
+git clone https://github.com/Maverick-KVB37/ASTROVE.git
 cd ASTROVE
 
 # Standard optimized build (recommended)
