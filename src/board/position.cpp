@@ -5,7 +5,6 @@
 #include <iostream>
 #include <sstream>
 
-// A helper function to print a bitboard for debugging
 void print_bitboard(Bitboard bb, const std::string& name) {
     std::cout << "\n--- " << name << " ---\n";
     for (int rank = 7; rank >= 0; --rank) {
@@ -25,7 +24,7 @@ void print_bitboard(Bitboard bb, const std::string& name) {
     std::cout << "Bitboard (hex): 0x" << std::hex << bb << std::dec << "\n\n";
 }
 
-void Position::print_all_bitboards() const {
+void Position::PrintAllBitboards() const {
     std::cout << "\n======================================\n";
     std::cout << "         FULL BITBOARD AUDIT          \n";
     std::cout << "======================================\n";
@@ -49,7 +48,6 @@ void Position::print_all_bitboards() const {
     print_bitboard(occupancy(),      "TOTAL Board Occupancy");
 }
 
-// Getter function for the char-to-piece map
 const std::map<char, Piece>& getCharToPiece() {
     static const std::map<char, Piece> charToPieceMap = {
         {'P', WhitePawn},   {'N', WhiteKnight}, {'B', WhiteBishop}, {'R', WhiteRook}, {'Q', WhiteQueen}, {'K', WhiteKing},
@@ -58,7 +56,6 @@ const std::map<char, Piece>& getCharToPiece() {
     return charToPieceMap;
 }
 
-// Getter function for the piece-to-char map
 const std::map<Piece, char>& getPieceToChar() {
     static const std::map<Piece, char> pieceToCharMap = {
         {WhitePawn, 'P'},   {WhiteKnight, 'N'}, {WhiteBishop, 'B'}, {WhiteRook, 'R'}, {WhiteQueen, 'Q'}, {WhiteKing, 'K'},
@@ -79,11 +76,10 @@ Position::Position(const std::string& FEN)
 void Position::parseFEN(const std::string& FEN) {
     const auto& charToPiece = getCharToPiece();
 
-    // Reset board
     std::fill(std::begin(PiecesBB), std::end(PiecesBB), EMPTY_BB);
     std::fill(std::begin(board), std::end(board), None);
     historyCount = 0;
-    // Initialize first state
+
     stateCount = 1;
     state = &stateStack[0];
     state->enpassantSquare = NO_SQ;
@@ -96,7 +92,7 @@ void Position::parseFEN(const std::string& FEN) {
     std::stringstream ss(FEN);
     std::string part;
     
-    // 1. Piece placement
+    // piece placement
     ss >> part;
     int rank = 7, file = 0;
     for (char ch : part) {
@@ -112,11 +108,11 @@ void Position::parseFEN(const std::string& FEN) {
         }
     }
     
-    // 2. Side to move
+    // side to move
     ss >> part;
     stm = (part == "w") ? White : Black;
     
-    // 3. Castling
+    // castling
     ss >> part;
     if (part != "-") {
         for (char ch : part) {
@@ -129,13 +125,13 @@ void Position::parseFEN(const std::string& FEN) {
         }
     }
     
-    // 4. En passant
+    // en passant
     ss >> part;
     if (part != "-") {
         state->enpassantSquare = makesquare(File(part[0] - 'a'), Rank(part[1] - '1'));
     }
     
-    // 5. Halfmove clock
+    // halfmove clock
     int halfmove=0;
     if ((ss >>halfmove)) {
         state->halfMoveClock = static_cast<U8>(halfmove);
@@ -144,7 +140,7 @@ void Position::parseFEN(const std::string& FEN) {
         state->halfMoveClock=0;
     }
     
-    // 6. Fullmove number
+    // fullmove number
     int fullmove=1;
     if (ss>>fullmove) {
         fullMoveCounter=static_cast<uint16_t>(fullmove);
@@ -152,14 +148,12 @@ void Position::parseFEN(const std::string& FEN) {
         fullMoveCounter=1;
     }
     
-    // Update occupancy
     occupancyWhite = pawns<White>() | knights<White>() | bishops<White>() | 
                      rooks<White>() | queens<White>() | kings<White>();
     occupancyBlack = pawns<Black>() | knights<Black>() | bishops<Black>() | 
                      rooks<Black>() | queens<Black>() | kings<Black>();
     occupancyAll = occupancyWhite | occupancyBlack;
     
-    // Generate hash
     state->hashKey = generateHashKey();
 }
 
@@ -167,7 +161,6 @@ std::string Position::toFEN() const {
     const auto& pieceToChar = getPieceToChar();
     std::stringstream fen;
     
-    // 1. Piece placement
     for (int rank = 7; rank >= 0; --rank) {
         int empty = 0;
         for (int file = 0; file < 8; ++file) {
@@ -188,10 +181,8 @@ std::string Position::toFEN() const {
         if (rank > 0) fen << '/';
     }
     
-    // 2. Side to move
     fen << " " << (stm == White ? 'w' : 'b');
     
-    // 3. Castling rights
     fen << " ";
     std::string castling;
     if (state->castlingRights & WHITE_OO)  castling += 'K';
@@ -200,7 +191,6 @@ std::string Position::toFEN() const {
     if (state->castlingRights & BLACK_OOO) castling += 'q';
     fen << (castling.empty() ? "-" : castling);
     
-    // 4. En passant
     fen << " ";
     if (state->enpassantSquare == NO_SQ) {
         fen << "-";
@@ -210,10 +200,7 @@ std::string Position::toFEN() const {
         fen<<char('a'+file)<<char('1'+rank);
     }
 
-    // 5. Halfmove clock
     fen << " " << static_cast<int>(state->halfMoveClock);
-    
-    // 6. Fullmove number
     fen << " " << static_cast<int>(fullMoveCounter);
     
     return fen.str();
@@ -247,7 +234,6 @@ void Position::movePiece(Square from, Square to) {
 uint64_t Position::generateHashKey() const {
     uint64_t hash = 0ULL;
     
-    // Hash all pieces
     for (int piece = 0; piece < 12; ++piece) {
         Bitboard bb = PiecesBB[piece];
         while (bb) {
@@ -256,15 +242,12 @@ uint64_t Position::generateHashKey() const {
         }
     }
     
-    // Hash en passant (ONLY file matters!)
     if (state->enpassantSquare != NO_SQ) {
         hash ^= zobrist.enpassantKeys[state->enpassantSquare & 7];
     }
     
-    // Hash castling
     hash ^= zobrist.castlingKeys[state->castlingRights];
     
-    // Hash side to move
     if (stm == Black) {
         hash ^= zobrist.sideKey;
     }
@@ -289,8 +272,6 @@ void Position::print() {
     }
     std::cout << "  +------------------------+\n";
     std::cout << "    a  b  c  d  e  f  g  h\n\n";
-    //std::cout << "FEN: " << toFEN() << "\n";
     std::cout << "Hash: 0x" << std::hex << state->hashKey << std::dec << "\n";
     std::cout << "Side: " << (stm == White ? "White" : "Black") << "\n\n";
 }
-

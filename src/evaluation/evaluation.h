@@ -1,40 +1,14 @@
 #pragma once
 
-#include "psqt.h"       // Piece-square tables
+#include "psqt.h"
 #include "../board/position.h"
 #include <cstdint>
 #include <array>
 
 namespace ASTROVE {
 namespace eval{
-    /*
-    using Score = int16_t;
 
-    struct EvalScore{
-        int32_t value;
-        
-        //constructor allow automatic conversion
-        constexpr EvalScore(int32_t v=0) : value(v) {}
-        //allow automatic conversion to int32_t
-        constexpr operator int32_t() const { return value;}
-    };
-
-    // Compose a combined evaluation with opening and endgame parts
-    constexpr EvalScore composeEval(Score opening, Score endgame) {
-        return EvalScore(static_cast<uint32_t>(endgame) << 16) |
-                                      (static_cast<uint16_t>(opening));
-    }
-
-    // Extract opening and endgame from combined EvalScore
-    constexpr Score openingScore(EvalScore score) {
-        return static_cast<Score>(score.value & 0xFFFF);
-    }
-    constexpr Score endgameScore(EvalScore score) {
-        return static_cast<Score>((score.value >> 16) & 0xFFFF);
-    }
-    */
-
-    // Evaluation constants
+    //evaluation constants
     constexpr EvalScore TEMPO_BONUS = composeEval(20, 10);
 
     //penalty for pawn
@@ -64,7 +38,7 @@ namespace eval{
         composeEval(0,0)
     };
 
-    // Base piece values (tapered)
+    //base piece values (tapered)
     constexpr EvalScore PieceValues[6] = {
         composeEval(100, 100),   // Pawn
         composeEval(320, 280),   // Knight
@@ -74,8 +48,7 @@ namespace eval{
         composeEval(0,   0)      // King
     };
 
-
-    // Bonuses (Passed pawns are deadly in endgame)
+    //bonuses (Passed pawns are deadly in endgame)
     constexpr EvalScore PASSED_PAWN_BONUS[8] = {
         composeEval(0, 0),     // Rank 1 (impossible)
         composeEval(5, 10),    // Rank 2
@@ -212,29 +185,29 @@ namespace eval{
     public:
         Evaluator() = default;
         ~Evaluator() = default;
-        Score evaluate_board(const Position& pos);
+        Score EvaluateBoard(const Position& pos);
 
     private:
         EvaluationData evalData;
 
         void initialize(const Position& pos);
 
-        void evaluate_material_and_placement(const Position& pos);
-        void evaluate_pawns(const Position& pos);
-        void evaluate_mobility(const Position& pos);
-        void evaluate_king_safety(const Position& pos);
-        void evaluate_rook(const Position& pos);
-        void evaluate_piece_structure(const Position& pos);
+        void EvaluateMaterialAndPlacement(const Position& pos);
+        void EvaluatePawns(const Position& pos);
+        void EvaluateMobility(const Position& pos);
+        void EvaluateKingSafety(const Position& pos);
+        void EvaluateRook(const Position& pos);
+        void EvaluatePieceStructure(const Position& pos);
 
-        int calculate_game_phase(const Position& pos) const;
-        Score calculate_final_score(const Position& pos) const;
+        int CalculateGamePhase(const Position& pos) const;
+        Score CalculateFinalScore(const Position& pos) const;
     };
 
     //global instance
     extern Evaluator board_evaluator;
 
     inline Score evaluate(const Position& pos) {
-        return board_evaluator.evaluate_board(pos);
+        return board_evaluator.EvaluateBoard(pos);
     }
 } //namespace eval
 } //namespace ASTROVE

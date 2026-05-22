@@ -1,13 +1,9 @@
 #pragma once
 
-#include "types.h" // Assuming this defines U64 (uint64_t) and Square (enum)
+#include "types.h"
 
 namespace Astrove::magic {
 
-    // --- Constant Data ---
-    // Pre-computed magic numbers and relevant bit counts for the lookup.
-    // Using 'constexpr' allows the compiler to know these values at compile-time.
-    
     constexpr Bitboard bishop_magic_numbers[64] = {
         5557547579207598608ULL, 577604261714624576ULL,   76632687726560273ULL,
         343404009312292864ULL,  9224502472784040449ULL,  1153204114528677888ULL,
@@ -66,23 +62,12 @@ namespace Astrove::magic {
                                         11, 11, 10, 10, 10, 10, 10, 10, 11, 11, 10, 10, 10,
                                         10, 10, 10, 11, 12, 11, 11, 11, 11, 11, 11, 12};
     
-    // --- Global Data Arrays ---
-    // These are defined in magic.cpp. The 'extern' keyword tells the compiler
-    // that their definition exists in another file.
     extern Bitboard bishop_masks[64];
     extern Bitboard rook_masks[64];
     extern Bitboard bishop_attacks[64][512];
     extern Bitboard rook_attacks[64][4096];
     
-    // --- Function Declarations ---
-    
-    // This is the function that will populate the arrays above.
-    // It needs to be called once when the engine starts.
     void init();
-    
-    // --- Inline Attack Getters ---
-    // These functions perform the fast lookup. They MUST be defined in the
-    // header to allow the compiler to inline them.
     
     inline Bitboard GetBishopAttacks(Square sq, Bitboard occupancy) noexcept {
         int square = static_cast<int>(sq);

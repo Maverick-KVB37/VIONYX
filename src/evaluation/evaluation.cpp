@@ -8,24 +8,24 @@ namespace ASTROVE::eval {
 
     Evaluator board_evaluator;
 
-    Score Evaluator::evaluate_board(const Position& pos) {
+    Score Evaluator::EvaluateBoard(const Position& pos) {
         initialize(pos);
 
-        evaluate_material_and_placement(pos);
-        evaluate_pawns(pos);
-        evaluate_mobility(pos);
-        evaluate_king_safety(pos);
-        evaluate_rook(pos);
-        evaluate_piece_structure(pos);
+        EvaluateMaterialAndPlacement(pos);
+        EvaluatePawns(pos);
+        EvaluateMobility(pos);
+        EvaluateKingSafety(pos);
+        EvaluateRook(pos);
+        EvaluatePieceStructure(pos);
         
-        return calculate_final_score(pos);
+        return CalculateFinalScore(pos);
     }
 
     void Evaluator::initialize(const Position& pos) {
         evalData = EvaluationData{};
     }
 
-    void Evaluator::evaluate_material_and_placement(const Position& pos){
+    void Evaluator::EvaluateMaterialAndPlacement(const Position& pos){
         for(PieceType pt=Pawn;pt<=King;pt=PieceType(pt+1)){
             //so white pieces
             Bitboard w=pos.pieces(White,pt);
@@ -45,7 +45,7 @@ namespace ASTROVE::eval {
     }
 
     //function for Evaluate Pawn
-    void Evaluator::evaluate_pawns(const Position& pos){
+    void Evaluator::EvaluatePawns(const Position& pos){
         Bitboard whitePawns = pos.pawns<White>();
         Bitboard blackPawns =pos.pawns<Black>();
 
@@ -95,7 +95,7 @@ namespace ASTROVE::eval {
 
                 //square directly infront of pawn
                 Square frontSq=Square(sq+8);
-                Bitboard frontAttackByEnemy=Attacks::get_pawn_attacks(White,frontSq) & blackPawns;
+                Bitboard frontAttackByEnemy=Attacks::GetPawnAttacks(White,frontSq) & blackPawns;
 
                 if(friendsBehind==0 && frontAttackByEnemy!=0){
                     evalData.add(BACKWARD_PAWN_PENALTY);
@@ -132,7 +132,7 @@ namespace ASTROVE::eval {
 
                 //square directly infront of pawn
                 Square frontSq=Square(sq-8);
-                Bitboard frontAttackByEnemy=Attacks::get_pawn_attacks(Black,frontSq) & whitePawns;
+                Bitboard frontAttackByEnemy=Attacks::GetPawnAttacks(Black,frontSq) & whitePawns;
 
                 if(friendsBehind==0 && frontAttackByEnemy!=0){
                     evalData.subtract(BACKWARD_PAWN_PENALTY);
@@ -141,21 +141,21 @@ namespace ASTROVE::eval {
         }
     }
 
-    void Evaluator::evaluate_mobility(const Position& pos){
+    void Evaluator::EvaluateMobility(const Position& pos){
         Bitboard occupancy=pos.occupancy();
         
         Bitboard blackPawnAtt=0ULL;
         Bitboard bp=pos.pawns<Black>();
         while(bp){
             Square sq = poplsb(bp);
-            blackPawnAtt |= Attacks::get_pawn_attacks(Black, sq);
+            blackPawnAtt |= Attacks::GetPawnAttacks(Black, sq);
         }
 
         Bitboard whitePawnAtt = 0ULL;
         Bitboard wp = pos.pawns<White>();
         while(wp){
             Square sq = poplsb(wp);
-            whitePawnAtt |= Attacks::get_pawn_attacks(White, sq);
+            whitePawnAtt |= Attacks::GetPawnAttacks(White, sq);
         }
 
         Bitboard whiteSafe = ~pos.occupancy(White) & ~blackPawnAtt;
@@ -166,7 +166,7 @@ namespace ASTROVE::eval {
         while(knights){
             Square sq=poplsb(knights);
         
-            int count=popcount(Attacks::get_knight_attacks(sq) & whiteSafe);
+            int count=popcount(Attacks::GetKnightAttacks(sq) & whiteSafe);
             evalData.add(MobilityBonus_Knight[count]);
         }
 
@@ -174,7 +174,7 @@ namespace ASTROVE::eval {
         while(bishops){
             Square sq=poplsb(bishops);
         
-            int count=popcount(Attacks::get_bishop_attacks(sq, occupancy) & whiteSafe);
+            int count=popcount(Attacks::GetBishopAttacks(sq, occupancy) & whiteSafe);
             evalData.add(MobilityBonus_Bishop[std::min(count,13)]);
         }
 
@@ -182,7 +182,7 @@ namespace ASTROVE::eval {
         while(rooks){
             Square sq=poplsb(rooks);
             
-            int count=popcount(Attacks::get_rook_attacks(sq, occupancy) & whiteSafe);
+            int count=popcount(Attacks::GetRookAttacks(sq, occupancy) & whiteSafe);
             evalData.add(MobilityBonus_Rook[std::min(count,14)]);
         }
 
@@ -191,7 +191,7 @@ namespace ASTROVE::eval {
         while(knights){
             Square sq=poplsb(knights);
             
-            int count=popcount(Attacks::get_knight_attacks(sq) & blackSafe);
+            int count=popcount(Attacks::GetKnightAttacks(sq) & blackSafe);
             evalData.subtract(MobilityBonus_Knight[count]);
         }
 
@@ -199,7 +199,7 @@ namespace ASTROVE::eval {
         while(bishops){
             Square sq=poplsb(bishops);
             
-            int count=popcount(Attacks::get_bishop_attacks(sq, occupancy) & blackSafe);
+            int count=popcount(Attacks::GetBishopAttacks(sq, occupancy) & blackSafe);
             evalData.subtract(MobilityBonus_Bishop[std::min(count,13)]);
         }
 
@@ -207,14 +207,14 @@ namespace ASTROVE::eval {
         while(rooks){
             Square sq=poplsb(rooks);
         
-            int count=popcount(Attacks::get_rook_attacks(sq, occupancy) & blackSafe);
+            int count=popcount(Attacks::GetRookAttacks(sq, occupancy) & blackSafe);
             evalData.subtract(MobilityBonus_Rook[std::min(count,14)]);
         }
     }
 
     //king safety pawn shield
-    void Evaluator::evaluate_king_safety(const Position& pos){
-        Bitboard occupancy = pos.occupancy();  // compute ONCE
+    void Evaluator::EvaluateKingSafety(const Position& pos){
+        Bitboard occupancy = pos.occupancy();
         
         //a helper for calculate danger score for a specific side
         auto calculatedanger = [&](Color side)->EvalScore{
@@ -222,7 +222,7 @@ namespace ASTROVE::eval {
             Color enemy=~side;
 
             //king ring
-            Bitboard kingring=Attacks::get_king_attacks(ksq);
+            Bitboard kingring=Attacks::GetKingAttacks(ksq);
 
             //now counting attackers
             int attacksunit=0;
@@ -232,7 +232,7 @@ namespace ASTROVE::eval {
             Bitboard knights=pos.pieces(enemy,Knight);
             while(knights){
                 Square sq=poplsb(knights);
-                Bitboard attacks=Attacks::get_knight_attacks(sq);
+                Bitboard attacks=Attacks::GetKnightAttacks(sq);
 
                 if(attacks & kingring){
                     attacksunit += knightweight;
@@ -244,7 +244,7 @@ namespace ASTROVE::eval {
             Bitboard bishops=pos.pieces(enemy,Bishop);
             while(bishops){
                 Square sq=poplsb(bishops);
-                Bitboard attacks=Attacks::get_bishop_attacks(sq,occupancy);
+                Bitboard attacks=Attacks::GetBishopAttacks(sq,occupancy);
 
                 if(attacks & kingring){
                     attacksunit+=bishopweight;
@@ -256,7 +256,7 @@ namespace ASTROVE::eval {
             Bitboard rooks=pos.pieces(enemy,Rook);
             while (rooks){
                 Square sq = poplsb(rooks);
-                Bitboard attacks = Attacks::get_rook_attacks(sq, occupancy);
+                Bitboard attacks = Attacks::GetRookAttacks(sq, occupancy);
 
                 if (attacks & kingring) {
                     attacksunit += rookweight;
@@ -269,41 +269,14 @@ namespace ASTROVE::eval {
             while (queens) {
                 Square sq=poplsb(queens);
 
-                Bitboard attacks = Attacks::get_bishop_attacks(sq,occupancy) 
-                                 | Attacks::get_rook_attacks(sq,occupancy);
+                Bitboard attacks = Attacks::GetBishopAttacks(sq,occupancy) 
+                                 | Attacks::GetRookAttacks(sq,occupancy);
                 
                 if (attacks & kingring) {
                     attacksunit += queenweight;
                     attackercount++;
                 }
             }
-
-            
-            /*
-            //PAWN SHIELD/OPEN FILE
-            Bitboard ownPawns = (side == White) ? pos.pawns<White>() : pos.pawns<Black>();
-            int kf = fileof(ksq);
-
-            for(int df=-1;df<=1;df++){
-                int f=kf+df;
-                if(f<0 || f>7){
-                    continue;
-                }
-                Bitboard fileMask=MASKFILE[f];
-
-                if(!(ownPawns & fileMask)){
-                    attacksunit+=openingScore(KING_OPEN_FILE_PENALTY)/5;
-                }
-                else{
-                    Bitboard shieldRank=(side==White) ? MASKRANK[RANK_2] | MASKRANK[RANK_3] : MASKRANK[RANK_7] | MASKRANK[RANK_6];
-                    if(ownPawns & fileMask & shieldRank){
-                        attacksunit-=openingScore(KING_PAWN_SHIELD_PENALTY)/5;
-                    }
-                }
-            }
-            attacksunit=std::max(0,attacksunit);
-            */
-
 
             //now calculate penalty
             if(attackercount>=1){
@@ -325,7 +298,7 @@ namespace ASTROVE::eval {
         evalData.add(blackdanger);
     }
 
-    void Evaluator::evaluate_rook(const Position& pos) {
+    void Evaluator::EvaluateRook(const Position& pos) {
         //white rook
         Bitboard wrook=pos.rooks<White>();
         while(wrook){
@@ -360,7 +333,7 @@ namespace ASTROVE::eval {
     }
 
     //ouposts
-    void Evaluator::evaluate_piece_structure(const Position& pos){
+    void Evaluator::EvaluatePieceStructure(const Position& pos){
         //bishop pair
         if(popcount(pos.bishops<White>())>=2){
             evalData.add(BISHOP_PAIR_BONUS);
@@ -379,7 +352,7 @@ namespace ASTROVE::eval {
 
             //so we check outpost on rank3 to6
             if(r>=RANK_3 && r<=RANK_6){
-                if(Attacks::get_pawn_attacks(Black,sq)& wpawns){
+                if(Attacks::GetPawnAttacks(Black,sq)& wpawns){
                     //means it`s supported by pawn
                     evalData.add(KNIGHT_OUTPOST_BONUS[r]);
                 }
@@ -394,14 +367,14 @@ namespace ASTROVE::eval {
 
             //so we check outpost on rank3 to6
             if(rr>=RANK_3 && rr<=RANK_6){
-                if(Attacks::get_pawn_attacks(White,sq)& bpawns){
+                if(Attacks::GetPawnAttacks(White,sq)& bpawns){
                     //means it`s supported by pawn
                     evalData.subtract(KNIGHT_OUTPOST_BONUS[rr]);
                 }
             }
         }
     }
-    int Evaluator::calculate_game_phase(const Position& pos) const {
+    int Evaluator::CalculateGamePhase(const Position& pos) const {
     
         int phase = 0;
         phase += popcount(pos.knights<White>()) + popcount(pos.knights<Black>());
@@ -414,11 +387,11 @@ namespace ASTROVE::eval {
         return phase;
     }
 
-    Score Evaluator::calculate_final_score(const Position& pos) const {
+    Score Evaluator::CalculateFinalScore(const Position& pos) const {
         Score opening = evalData.opening();
         Score endgame = evalData.endgame();
 
-        // Add tempo bonus for side to move (FIX: no parentheses!)
+        // Add tempo bonus for side to move
         if (pos.sideToMove() == White) {
             opening+=openingScore(TEMPO_BONUS);
             endgame+=endgameScore(TEMPO_BONUS);
@@ -427,7 +400,7 @@ namespace ASTROVE::eval {
             endgame-=endgameScore(TEMPO_BONUS);
         }
 
-        int phase = calculate_game_phase(pos);
+        int phase = CalculateGamePhase(pos);
 
         Score finalScore = (opening * phase + endgame * (24 - phase)) / 24;
     

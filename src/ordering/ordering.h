@@ -10,17 +10,16 @@ public:
     MoveOrderer();
 
     // Score quiet and non-capture moves for ordering
-    void scoreMoves(const Position& pos, MoveList& moves, Move ttMove,Move killers[2],const int history[2][64][64],Move prevMove,const Move counterMove[2][64][64]);
+    void ScoreMoves(const Position& pos, MoveList& moves, Move ttMove,Move killers[2],const int history[2][64][64],Move prevMove,const Move counterMove[2][64][64]);
 
     // Score capture moves for ordering using SEE
-    void scoreCaptures(const Position& pos, MoveList& captures);
+    void ScoreCaptures(const Position& pos, MoveList& captures);
 
     // Static Exchange Evaluation to order captures
     int see(const Position& pos, Move move);
 
     bool seeGe(const Position& pos, Move move, int threshold);
 
-    // Storage for scores during sorting
     int scores[256];
 private:
     static constexpr int SEEVALUE[6] = {100, 325, 335, 500, 975, 0};

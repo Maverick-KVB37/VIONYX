@@ -43,17 +43,26 @@
 #testing output files
 *.pgn
 *.png
-*.vscode
 *.txt
 *.sh
-./stockfish
 
-# Ignore Executables
-*.exe
-*.o
+# Engine binaries
+stockfish
+ASTROVE
+ASTROVE2600
+ASTROVEBUGFIXC++
+
+# Test files
+noob_3moves.epd
+
+# Build directories
 build/
 bin/
 
-# Ignore System Files
+# System / IDE
 .DS_Store
 .vscode/
+*.vscode
+
+# Node modules (web-chess)
+web-chess/node_modules/

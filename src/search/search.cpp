@@ -6,12 +6,10 @@ namespace Search {
 Searcher::Searcher(Position &pos, TranspositionTable &tt)
     : pos(pos), tt(tt), stopFlag(false), nodes(0), selDepth(0) {
 
-  // Initialize stack
   for (int i = 0; i < MAX_PLY + 10; i++) {
     stack[i] = SearchStack();
   }
 
-  // Pre compute LMR table
   initLmrTable();
 }
 
@@ -22,6 +20,7 @@ void Searcher::initLmrTable() {
       lmrTable[d][m] = int(0.75 + log(d) * log(m) / 2.25);
 }
 
+//age history scores (halve) before each search
 void Searcher::ageHistory() {
   for (int c = 0; c < 2; c++)
     for (int f = 0; f < 64; f++)
@@ -39,7 +38,6 @@ Move Searcher::think(const SearchLimits &limits) {
 
   tt.newSearch();
 
-  // calculate move number
   int fullMoves = pos.getFullMoves();
   int moveNumber;
   if (pos.sideToMove() == White) {
@@ -50,7 +48,7 @@ Move Searcher::think(const SearchLimits &limits) {
 
   tm.start(limits, pos.sideToMove(), moveNumber);
 
-  iterative_deepening(); // main search loop
+  IterativeDeepening();
 
   Move bestMove = NO_MOVE;
   if (info.pv.length > 0) {
@@ -62,10 +60,9 @@ Move Searcher::think(const SearchLimits &limits) {
 
   if (info.pv.length == 0 || moveInvalid) {
 
-    // Generate emergency move
     MoveList moves;
     if (pos.sideToMove() == White) {
-      gen.generate_all_moves<White>(pos, moves);
+      gen.GenerateAllMoves<White>(pos, moves);
 
       for (const Move &move : moves) {
         pos.makemove<White>(move);
@@ -77,7 +74,7 @@ Move Searcher::think(const SearchLimits &limits) {
         }
       }
     } else {
-      gen.generate_all_moves<Black>(pos, moves);
+      gen.GenerateAllMoves<Black>(pos, moves);
 
       for (const Move &move : moves) {
         pos.makemove<Black>(move);
@@ -90,7 +87,6 @@ Move Searcher::think(const SearchLimits &limits) {
       }
     }
 
-    // Last resort: return first move if any exist
     if (!moves.empty()) {
       return moves[0];
     }
@@ -101,18 +97,17 @@ Move Searcher::think(const SearchLimits &limits) {
   return bestMove;
 }
 
-void Searcher::iterative_deepening() {
+void Searcher::IterativeDeepening() {
   Move bestMoveFound = NO_MOVE;
   int score = 0;
 
-  // Age history scores before each search
   ageHistory();
 
   for (int depth = 1; depth <= limits.depth; ++depth) {
     if (stopFlag && depth > 1)
       break;
 
-    // ASPIRATION WINDOW with exponential widening
+    //aspiration window
     int alpha = -INFINITE;
     int beta = INFINITE;
     int delta = 25;
@@ -130,21 +125,20 @@ void Searcher::iterative_deepening() {
         score = pvs<Black, true>(depth, 0, alpha, beta, false, NO_MOVE);
       }
 
-      // check hard time
       if (depth > 1) {
-        check_time();
+        CheckTime();
         if (stopFlag)
           break;
       }
 
-      // Exponential widening on fail-low
+      //exponential widening on fail-low
       if (score <= alpha) {
         beta = (alpha + beta) / 2;
         alpha = std::max(-INFINITE, alpha - delta);
         delta *= 2;
         continue;
       }
-      // Exponential widening on fail-high
+      //exponential widening on fail-high
       if (score >= beta) {
         beta = std::min(INFINITE, beta + delta);
         delta *= 2;
@@ -156,7 +150,6 @@ void Searcher::iterative_deepening() {
     if (stopFlag)
       break;
 
-    // update pv and output it we finish search properly
     if (stack[0].pv.length < MAX_PLY && stack[0].pv.length > 0) {
       info.pv = stack[0].pv;
       bestMoveFound = stack[0].pv.moves[0];
@@ -167,12 +160,11 @@ void Searcher::iterative_deepening() {
     info.nodes = nodes;
     info.time = tm.elapsed();
     info.nps = (info.time > 0) ? (1000ULL * nodes / info.time) : 0ULL;
-    update_uci_info(depth, score, info.pv);
+    UpdateUciInfo(depth, score, info.pv);
   }
 
-  // Output the saved best move
   if (bestMoveFound.from() != bestMoveFound.to()) {
-    std::cout << "bestmove " << bestMoveFound.to_uci_string() << std::endl;
+    std::cout << "bestmove " << bestMoveFound.ToUciString() << std::endl;
   } else {
     std::cout << "bestmove 0000" << std::endl;
   }
@@ -186,7 +178,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   }
 
   if (ply >= MAX_PLY) {
-    return eval.evaluate_board(pos);
+    return eval.EvaluateBoard(pos);
   }
 
   if (depth <= 0) {
@@ -194,79 +186,66 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   }
   nodes++;
 
-  // Draw detection (repetition and fifty-move rule)
-  if (ply > 0 && is_draw(ply))
+  if (ply > 0 && IsDraw(ply))
     return 0;
 
-  // Stop/time check every 2048 nodes
   if ((nodes & 2047) == 0)
-    check_time();
+    CheckTime();
   if (stopFlag)
     return 0;
-  // Transposition Table probe
+
+  //TT probe
   int ttScore;
   Move ttMove = NO_MOVE;
   if (tt.probe(pos.hash(), depth, alpha, beta, ttScore, ttMove, ply)) {
-    // we onlt use tt score to cut off when we are not in a pv node
     if (!PvNode) {
       return ttScore;
     }
   }
 
   bool inCheck = pos.inCheck<c>();
-  // check extension
   int extension = 0;
   if (inCheck) {
     extension = 1;
   }
 
-  // IID(INTERNAL ITERATIVE DEEPENING)
+  //IID
   if (PvNode && depth > 3 && ttMove == NO_MOVE && !inCheck) {
-    // so search shallow to find move
     int iidDepth = depth - 2;
     pvs<c, PvNode>(iidDepth, ply, alpha, beta, false, previousMove);
 
     Move iidMove = NO_MOVE;
     int iidScore = 0;
     if (tt.probe(pos.hash(), depth, alpha, beta, iidScore, iidMove, ply)) {
-      // so we found move and can use it as ordering
       ttMove = iidMove;
     }
   }
-  // static evaluation
+
   int staticEval = 0;
   if (!inCheck) {
-    staticEval = eval.evaluate_board(pos);
+    staticEval = eval.EvaluateBoard(pos);
     stack[ply].staticEval = staticEval;
   }
 
-  // 1.3: Improving flag — is our eval better than 2 plies ago?
   bool improving =
       (!inCheck && ply >= 2 && staticEval > stack[ply - 2].staticEval);
 
-  //=================== RFP ==================
-  // so if we winning by a lot (eval-margin>beta) we assume that we win without
-  // needing to search further
+  //RFP (reverse futility pruning)
   if (!PvNode && !inCheck && depth <= 8 && pos.hasNonPawnMaterial<c>() &&
       abs(beta) < MATE_SCORE - 100) {
-    // 1.3: Use tighter margin when not improving
     int margin = improving ? 120 * depth : 80 * depth;
     if (staticEval - margin >= beta) {
       return beta;
     }
   }
 
-  //======================= NMP =============================
-  // so if we pass and still win then we can beat easily
+  //NMP (null move pruning)
   if (!PvNode && depth >= 3 && !inCheck && ply > 0 && staticEval >= beta &&
       pos.hasNonPawnMaterial<c>()) {
-    // 1.3: Reduce more when improving
     int R = 3 + (depth / 6) + improving;
-    // if we win more then reduce more
     if (staticEval >= beta + 200)
       R++;
 
-    // also we have ensure that depth do not drop to 0
     if (depth - R - 1 > 0) {
       pos.makeNullMove<c>();
 
@@ -285,25 +264,22 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     }
   }
 
-  //================= FP ==================
-  // so if a position is bad (eval+margin<alpha) quiet moves can`t save us
+  //futility pruning
   bool futilityprun = false;
   if (depth <= 4 && !inCheck && !PvNode && abs(alpha) < MATE_SCORE - 100 &&
       abs(beta) < MATE_SCORE - 100) {
-    // so margin if we improve by 1.5 pawns per depth
     int margin = depth * 150;
     if (staticEval + margin <= alpha) {
       futilityprun = true;
     }
   }
 
-  // Move generation
   MoveList moves;
-  gen.generate_all_moves<c>(pos, moves);
+  gen.GenerateAllMoves<c>(pos, moves);
   if (moves.empty())
     return pos.inCheck<c>() ? -MATE_SCORE + ply : 0;
 
-  orderer.scoreMoves(pos, moves, ttMove, stack[ply].killers, history,
+  orderer.ScoreMoves(pos, moves, ttMove, stack[ply].killers, history,
                      previousMove, counterMoves);
 
   int originalAlpha = alpha;
@@ -311,22 +287,19 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   int bestScore = -INFINITE;
   int legalMoves = 0;
 
-  // lmp counter for quiet move
   int quietmovesearched = 0;
 
-  // 1.4: Track quiet moves searched for history malus
   Move searchedQuiets[64];
   int searchedQuietCount = 0;
 
   for (const Move move : moves) {
 
-    //============== LMP ===============
-    if (!PvNode && !inCheck && depth < 8 && !move.is_capture() &&
-        !move.is_promotion()) {
-      // 1.3: Be more aggressive when not improving
+    //LMP
+    if (!PvNode && !inCheck && depth < 8 && !move.IsCapture() &&
+        !move.IsPromotion()) {
       int lmpthre = improving ? (3 + depth * depth) : (3 + depth * depth / 2);
       if (quietmovesearched >= lmpthre) {
-        continue; // skip the move
+        continue;
       }
     }
 
@@ -339,18 +312,16 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
 
     legalMoves++;
 
-    // now we have to increment quiet move
-    if (!move.is_capture() && !move.is_promotion()) {
+    if (!move.IsCapture() && !move.IsPromotion()) {
       quietmovesearched++;
-      // 1.4: Track quiet moves for history malus
       if (searchedQuietCount < 64) {
         searchedQuiets[searchedQuietCount++] = move;
       }
     }
 
     bool givesCheck = pos.inCheck<~c>();
-    if (futilityprun && legalMoves > 0 && !move.is_capture() &&
-        !move.is_promotion() && !givesCheck) {
+    if (futilityprun && legalMoves > 0 && !move.IsCapture() &&
+        !move.IsPromotion() && !givesCheck) {
       pos.unmakemove<c>(move);
       continue;
     }
@@ -358,15 +329,13 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     int score;
     bool needfullsearch = true;
 
-    // ============================ LMR =========================
-    //  Use pre computed logarithmic LMR table
+    //LMR
     if (depth >= 3 && legalMoves > 4 && !PvNode && !inCheck &&
-        !move.is_capture() && !move.is_promotion() && !givesCheck &&
+        !move.IsCapture() && !move.IsPromotion() && !givesCheck &&
         extension == 0) {
 
       int R = lmrTable[std::min(depth, 63)][std::min(legalMoves, 63)];
 
-      // LMR adjustments
       int historyScore = history[c][move.from()][move.to()];
       if (cutNode)
         R += 1;
@@ -374,27 +343,22 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
         R += 1;
       if (historyScore > 4000)
         R -= 1;
-      // Increase reduction when not improving
       if (!improving)
         R += 1;
 
       R = std::clamp(R, 0, depth - 2);
 
-      // also don`t reduce when depth<1
       int reduceddepth = std::max(1, depth - 1 - R);
 
-      // now search with LMR
       score = -pvs<~c, false>(reduceddepth, ply + 1, -alpha - 1, -alpha, true,
                               move);
-      // so now check if score>alpha then our reduction is wrong and move is
-      // good
       if (score > alpha) {
         needfullsearch = true;
       } else {
         needfullsearch = false;
       }
     }
-    // now full depth
+
     if (needfullsearch) {
       if (legalMoves == 1) {
         score = -pvs<~c, PvNode>(depth - 1 + extension, ply + 1, -beta, -alpha,
@@ -421,20 +385,19 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
       if (score > alpha) {
         alpha = score;
         if (score >= beta) {
-          if (!move.is_capture() && ply < MAX_PLY) {
+          if (!move.IsCapture() && ply < MAX_PLY) {
             stack[ply].killers[1] = stack[ply].killers[0];
             stack[ply].killers[0] = move;
 
-            // gravity based history update (naturally bounded)
+            //gravity based history update
             int bonus = std::min(depth * depth, 400);
             int side = (c == White) ? 0 : 1;
 
-            // Bonus for the move that caused the cutoff
             history[side][move.from()][move.to()] +=
                 bonus -
                 history[side][move.from()][move.to()] * std::abs(bonus) / 16384;
 
-            // Malus for all searched quiets that didn't cut
+            //malus for searched quiets that didn't cut
             for (int qi = 0; qi < searchedQuietCount - 1; qi++) {
               Move bad = searchedQuiets[qi];
               history[side][bad.from()][bad.to()] -=
@@ -456,7 +419,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     return pos.inCheck<c>() ? (-MATE_SCORE + ply) : 0;
   }
 
-  // Store to TT
+  //store to TT
   int flag = (bestScore >= beta)           ? HASH_FLAG_BETA
              : (bestScore > originalAlpha) ? HASH_FLAG_EXACT
                                            : HASH_FLAG_ALPHA;
@@ -466,26 +429,24 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
 }
 
 template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
-  // Hard limit to prevent infinite recursion
   if (ply >= MAX_PLY - 1) {
-    return eval.evaluate_board(pos);
+    return eval.EvaluateBoard(pos);
   }
 
   nodes++;
 
-  // Check time periodically
   if ((nodes & 2047) == 0) {
-    check_time();
+    CheckTime();
   }
   if (stopFlag)
     return 0;
 
   bool inCheck = pos.inCheck<c>();
 
-  // Stand pat (only if not in check)
+  //stand pat
   int standPat = -INFINITE;
   if (!inCheck) {
-    standPat = eval.evaluate_board(pos);
+    standPat = eval.EvaluateBoard(pos);
 
     if (standPat >= beta) {
       return beta;
@@ -495,41 +456,37 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
       alpha = standPat;
     }
 
-    // Delta pruning
+    //delta pruning
     constexpr int DELTA_MARGIN = 1225;
     if (standPat + DELTA_MARGIN < alpha) {
       return alpha;
     }
   }
 
-  // Move generation: when in check generate all moves, otherwise only captures+promotions
+  //generate all moves when in check, otherwise only captures+promotions
   MoveList movelist;
   if (inCheck) {
-    gen.generate_all_moves<c>(pos, movelist);
+    gen.GenerateAllMoves<c>(pos, movelist);
   } else {
-    gen.generate_captures<c>(pos, movelist);
+    gen.GenerateCaptures<c>(pos, movelist);
   }
 
   if (movelist.empty()) {
     return inCheck ? (-MATE_SCORE + ply) : alpha;
   }
 
-  // Sort moves for ordering
   if (inCheck) {
     Move ttMove = NO_MOVE;
-    orderer.scoreMoves(pos, movelist, ttMove, stack[ply].killers,
+    orderer.ScoreMoves(pos, movelist, ttMove, stack[ply].killers,
                        history, NO_MOVE, counterMoves);
   } else {
-    orderer.scoreCaptures(pos, movelist);
+    orderer.ScoreCaptures(pos, movelist);
   }
 
-  // now iterate
   int legalMoves = 0;
   for (const Move &move : movelist) {
-    // Make the move
     pos.makemove<c>(move);
 
-    // check if move is legal (doesn't leave king in check)
     if (pos.inCheck<c>()) {
       pos.unmakemove<c>(move);
       continue;
@@ -537,46 +494,37 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 
     legalMoves++;
 
-    // Recursive quiescence search with negamax framework
     int score = -quiescence<~c>(-beta, -alpha, ply + 1);
 
-    // Unmake the move
     pos.unmakemove<c>(move);
 
-    // if(stopFlag) return 0;
-
-    // Beta cutoff
     if (score >= beta) {
       return beta;
     }
 
-    // Update alpha
     if (score > alpha) {
       alpha = score;
     }
   }
 
-  // If in check and no legal moves found, it's checkmate
   if (inCheck && legalMoves == 0) {
     return -MATE_SCORE + ply;
   }
 
   return alpha;
 }
-void Searcher::check_time() {
-  // checks if hardTime exceeded
+
+void Searcher::CheckTime() {
   tm.Check();
 
-  // stops when hard time reached
   if (tm.StopFlag()) {
     stopFlag = true;
   }
 }
 
-void Searcher::update_uci_info(int depth, int score, const PVLine &pv) {
+void Searcher::UpdateUciInfo(int depth, int score, const PVLine &pv) {
   std::cout << "info depth " << depth;
 
-  // Mate score detection
   if (std::abs(score) >= MATE_BOUND) {
     int mate_in_plies = MATE_SCORE - std::abs(score);
     int mate_in_moves = (mate_in_plies + 1) / 2;
@@ -589,12 +537,12 @@ void Searcher::update_uci_info(int depth, int score, const PVLine &pv) {
             << info.time << " pv ";
   int maxMoves = std::min(pv.length, MAX_PLY);
   for (int i = 0; i < maxMoves; i++) {
-    std::cout << pv.moves[i].to_uci_string() << " ";
+    std::cout << pv.moves[i].ToUciString() << " ";
   }
   std::cout << std::endl;
 }
 
-bool Searcher::is_draw(int ply) const {
+bool Searcher::IsDraw(int ply) const {
   return pos.isDrawByRepetition(ply) || pos.isDrawByFiftyMove();
 }
 
