@@ -132,7 +132,8 @@ ENABLE_INCR_OPERATORS_ON(Rank)
 #undef ENABLE_INCR_OPERATORS_ON
 
 //tapered eval score (mg + eg)
-struct S{
+class S{
+public:
     int mg;
     int eg;
 

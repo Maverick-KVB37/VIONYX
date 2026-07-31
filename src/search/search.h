@@ -24,15 +24,19 @@ constexpr int MATE_SCORE = 49000;
 constexpr int TB_WIN_SCORE = 48000;
 constexpr int MATE_BOUND = MATE_SCORE - MAX_PLY;
 
-struct SearchLimits;
-struct PVLine;
-struct SearchStack;
-struct SearchInfo;
+class SearchLimits;
+class PVLine;
+class SearchStack;
+class SearchInfo;
 
-//stores best play
-struct PVLine {
-  Move moves[MAX_PLY];
+// Stores best play
+class PVLine {
+public:
+  // 4-byte types
   int length = 0;
+
+  // 2-byte element array
+  Move moves[MAX_PLY];
 
   void clear() { length = 0; }
 
@@ -48,16 +52,24 @@ struct PVLine {
   }
 };
 
-//store data for a ply
-struct SearchStack {
+// Store data for a ply
+class SearchStack {
+public:
+  // PVLine alignment is 4 bytes, so it pairs perfectly with ints
+  PVLine pv;
+
+  // 4-byte types
+  int staticEval = 0;
+  int moveCount = 0;
+  int doubleExtensions = 0;
+
+  // 2-byte types
   Move currentMove = NO_MOVE;
   Move excludedMove = NO_MOVE;
   Move killers[2] = {NO_MOVE, NO_MOVE};
-  int staticEval = 0;
-  int moveCount = 0;
+
+  // 1-byte types
   bool inCheck = false;
-  int doubleExtensions = 0;
-  PVLine pv;
 
   SearchStack() { clear(); }
 
@@ -71,9 +83,10 @@ struct SearchStack {
   }
 };
 
-//tells the limits for search
-struct SearchLimits {
-  int depth = MAX_PLY;
+// Tells the limits for search
+class SearchLimits {
+public:
+  // 8-byte types
   uint64_t nodes = UINT64_MAX;
   int64_t movetime = 0;
   int64_t movestogo = 0;
@@ -81,24 +94,40 @@ struct SearchLimits {
   int64_t btime = 0;
   int64_t winc = 0;
   int64_t binc = 0;
+
+  // 4-byte types
+  int depth = MAX_PLY;
+  int searchmovesCount = 0; // Replaces std::vector size()
+
+  // 2-byte types
+  Move searchmoves[256]; // Fixed array replaces dynamic std::vector
+
+  // 1-byte types
   bool infinite = false;
   bool ponder = false;
-  std::vector<Move> searchmoves;
 };
 
-//collect data for uci output
-struct SearchInfo {
-  int depth = 0;
-  int seldepth = 0;
+// Collect data for uci output
+class SearchInfo {
+public:
+  // 8-byte types MUST be at the top to prevent padding before PVLine
   uint64_t nodes = 0;
   uint64_t tbhits = 0;
+  uint64_t nps = 0;
+
+  // Composite types (4-byte alignment)
+  PVLine pv;
+
+  // 4-byte types
+  int depth = 0;
+  int seldepth = 0;
   int score = 0;
   int time = 0;
-  uint64_t nps = 0;
-  PVLine pv;
-  bool isMate = false;
   int mateIn = 0;
   int hashfull = 0;
+
+  // 1-byte types
+  bool isMate = false;
 
   void clear() {
     depth = seldepth = score = time = mateIn = hashfull = 0;

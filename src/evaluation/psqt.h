@@ -9,7 +9,8 @@ namespace ASTROVE::eval {
 
     using Score = int16_t;
     
-    struct EvalScore {
+    class EvalScore {
+    public:
         int32_t value;
         constexpr EvalScore(int32_t v = 0) : value(v) {}
         constexpr operator int32_t() const { return value; }

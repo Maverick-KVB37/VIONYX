@@ -14,15 +14,20 @@ constexpr int NO_HASH_ENTRY   = 32002;
 constexpr int MAX_BUCKETS = 2; // number of tt entrie per index
 
 
-struct TTEntry {
+class alignas(16) TTEntry {
+public:
+    // 8-byte types
     uint64_t key;       // zobrist key of the position
+
+    // 2-byte types
     int16_t score;      // stored search score
     int16_t eval;       // static evaluation
+    Move bestMove;      // best move found
+
+    // 1-byte types
     uint8_t depth;      // search depth of entry
     uint8_t flag;       // alpha / beta / exact
     uint8_t age;        // for replacement policy
-    uint8_t padding;    // alignment to 8 bytes
-    Move bestMove;      // best move found
 };
 
 // ----------------------------------------------------------

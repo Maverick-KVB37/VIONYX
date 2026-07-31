@@ -148,7 +148,8 @@ namespace eval{
     };
 
 
-    struct EvaluationData {
+    class EvaluationData {
+    public:
         int32_t mg=0;
         int32_t eg=0;
 

@@ -3,7 +3,7 @@
 #include <chrono>
 
 namespace Search {
-struct SearchLimits;
+class SearchLimits;
 }
 
 class TimeManager {

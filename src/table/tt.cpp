@@ -1,4 +1,5 @@
 #include "tt.h"
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 
@@ -13,7 +14,7 @@ TranspositionTable::~TranspositionTable() {
 // clear all tt entries
 void TranspositionTable::clear() {
     if (!table) return;
-    std::memset(table, 0, numEntries * sizeof(TTEntry));
+    std::fill(table, table + numEntries, TTEntry{});
 }
 
 

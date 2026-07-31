@@ -79,7 +79,8 @@ void perftDivide(Position& pos, int depth, MoveGenerator& gen) {
 
 
 void runPerftTests() {
-    struct Test {
+    class Test {
+    public:
         std::string fen;
         std::vector<uint64_t> expected;
     };
