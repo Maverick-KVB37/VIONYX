@@ -12,6 +12,9 @@ public:
     // Score quiet and non-capture moves for ordering
     void ScoreMoves(const Position& pos, MoveList& moves, Move ttMove,Move killers[2],const int history[2][64][64],Move prevMove,const Move counterMove[2][64][64]);
 
+    // Pick next best move lazily
+    Move PickNextMove(MoveList& moves, int startIndex);
+
     // Score capture moves for ordering using SEE
     void ScoreCaptures(const Position& pos, MoveList& captures);
 

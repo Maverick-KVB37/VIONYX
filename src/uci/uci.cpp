@@ -7,6 +7,11 @@
 #include <sstream>
 
 UCI::UCI() : pos(nullptr), tt() {
+  // Must init tables BEFORE creating Position (placePiece uses PSQT)
+  Astrove::magic::init();
+  zobrist.init();
+  ASTROVE::eval::InitializePieceSquareTable();
+
   pos =
       new Position("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   searcher = new Search::Searcher(*pos, tt);
@@ -188,9 +193,7 @@ Move UCI::parseMove(const std::string &moveUci) {
 }
 
 void UCI::bootEngine() {
-  Astrove::magic::init();
-  zobrist.init();
-  ASTROVE::eval::InitializePieceSquareTable();
+  // Tables already initialized in constructor
   tt.init(64);
 
   std::cout << "Astrove UCI-compatible engine ready\n";

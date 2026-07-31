@@ -20,7 +20,7 @@ void Searcher::initLmrTable() {
       lmrTable[d][m] = int(0.75 + log(d) * log(m) / 2.25);
 }
 
-//age history scores (halve) before each search
+// age history scores (halve) before each search
 void Searcher::ageHistory() {
   for (int c = 0; c < 2; c++)
     for (int f = 0; f < 64; f++)
@@ -107,7 +107,7 @@ void Searcher::IterativeDeepening() {
     if (stopFlag && depth > 1)
       break;
 
-    //aspiration window
+    // aspiration window
     int alpha = -INFINITE;
     int beta = INFINITE;
     int delta = 25;
@@ -131,14 +131,14 @@ void Searcher::IterativeDeepening() {
           break;
       }
 
-      //exponential widening on fail-low
+      // exponential widening on fail-low
       if (score <= alpha) {
         beta = (alpha + beta) / 2;
         alpha = std::max(-INFINITE, alpha - delta);
         delta *= 2;
         continue;
       }
-      //exponential widening on fail-high
+      // exponential widening on fail-high
       if (score >= beta) {
         beta = std::min(INFINITE, beta + delta);
         delta *= 2;
@@ -194,13 +194,19 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   if (stopFlag)
     return 0;
 
-  //TT probe
+  // TT probe
   int ttScore;
   Move ttMove = NO_MOVE;
-  if (tt.probe(pos.hash(), depth, alpha, beta, ttScore, ttMove, ply)) {
-    if (!PvNode) {
+  int ttDepth = 0, ttFlag = 0;
+  bool ttHit = tt.probeForSE(pos.hash(), ttDepth, ttFlag, ttScore, ttMove, ply);
+
+  if (ttHit && ttDepth >= depth && !PvNode) {
+    if (ttFlag == HASH_FLAG_EXACT)
       return ttScore;
-    }
+    if (ttFlag == HASH_FLAG_ALPHA && ttScore <= alpha)
+      return ttScore;
+    if (ttFlag == HASH_FLAG_BETA && ttScore >= beta)
+      return ttScore;
   }
 
   bool inCheck = pos.inCheck<c>();
@@ -209,7 +215,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     extension = 1;
   }
 
-  //IID
+  // IID
   if (PvNode && depth > 3 && ttMove == NO_MOVE && !inCheck) {
     int iidDepth = depth - 2;
     pvs<c, PvNode>(iidDepth, ply, alpha, beta, false, previousMove);
@@ -230,7 +236,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   bool improving =
       (!inCheck && ply >= 2 && staticEval > stack[ply - 2].staticEval);
 
-  //RFP (reverse futility pruning)
+  // RFP (reverse futility pruning)
   if (!PvNode && !inCheck && depth <= 8 && pos.hasNonPawnMaterial<c>() &&
       abs(beta) < MATE_SCORE - 100) {
     int margin = improving ? 120 * depth : 80 * depth;
@@ -239,14 +245,14 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     }
   }
 
-  //NMP (null move pruning)
+  // NMP (null move pruning)
   if (!PvNode && depth >= 3 && !inCheck && ply > 0 && staticEval >= beta &&
       pos.hasNonPawnMaterial<c>()) {
     int R = 3 + (depth / 6) + improving;
     if (staticEval >= beta + 200)
       R++;
 
-    if (depth - R - 1 > 0) {
+    if (depth - R - 1 >= 0) {
       pos.makeNullMove<c>();
 
       int score = -pvs<~c, false>(depth - R - 1, ply + 1, -beta, -beta + 1,
@@ -259,15 +265,23 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
         if (score > MATE_SCORE - MAX_PLY) {
           score = beta;
         }
-        return score;
+        // Verification search at high depth to prevent null move zugzwang
+        if (depth >= 12) {
+          int verScore = pvs<c, false>(depth - R - 1, ply + 1, beta - 1, beta,
+                                       false, previousMove);
+          if (verScore >= beta)
+            return score;
+        } else {
+          return score;
+        }
       }
     }
   }
 
-  //futility pruning
+  // futility pruning
   bool futilityprun = false;
-  if (depth <= 4 && !inCheck && !PvNode && abs(alpha) < MATE_SCORE - 100 &&
-      abs(beta) < MATE_SCORE - 100) {
+  if (depth <= 4 && !inCheck && !PvNode && std::abs(alpha) < MATE_SCORE - 100 &&
+      std::abs(beta) < MATE_SCORE - 100) {
     int margin = depth * 150;
     if (staticEval + margin <= alpha) {
       futilityprun = true;
@@ -292,9 +306,12 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   Move searchedQuiets[64];
   int searchedQuietCount = 0;
 
-  for (const Move move : moves) {
+  for (int i = 0; i < moves.size(); ++i) {
+    Move move = orderer.PickNextMove(moves, i);
+    if (move == stack[ply].excludedMove)
+      continue;
 
-    //LMP
+    // LMP
     if (!PvNode && !inCheck && depth < 8 && !move.IsCapture() &&
         !move.IsPromotion()) {
       int lmpthre = improving ? (3 + depth * depth) : (3 + depth * depth / 2);
@@ -320,7 +337,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     }
 
     bool givesCheck = pos.inCheck<~c>();
-    if (futilityprun && legalMoves > 0 && !move.IsCapture() &&
+    if (futilityprun && legalMoves > 1 && !move.IsCapture() &&
         !move.IsPromotion() && !givesCheck) {
       pos.unmakemove<c>(move);
       continue;
@@ -329,14 +346,15 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     int score;
     bool needfullsearch = true;
 
-    //LMR
-    if (depth >= 3 && legalMoves > 4 && !PvNode && !inCheck &&
-        !move.IsCapture() && !move.IsPromotion() && !givesCheck &&
-        extension == 0) {
+    // LMR (Late Move Reductions)
+    if (depth >= 3 && legalMoves > 3 && !inCheck && !move.IsCapture() &&
+        !move.IsPromotion() && !givesCheck) {
 
       int R = lmrTable[std::min(depth, 63)][std::min(legalMoves, 63)];
 
       int historyScore = history[c][move.from()][move.to()];
+      if (!PvNode)
+        R += 1;
       if (cutNode)
         R += 1;
       if (historyScore < 0)
@@ -345,6 +363,8 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
         R -= 1;
       if (!improving)
         R += 1;
+      if (PvNode)
+        R -= 1;
 
       R = std::clamp(R, 0, depth - 2);
 
@@ -389,7 +409,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
             stack[ply].killers[1] = stack[ply].killers[0];
             stack[ply].killers[0] = move;
 
-            //gravity based history update
+            // gravity based history update
             int bonus = std::min(depth * depth, 400);
             int side = (c == White) ? 0 : 1;
 
@@ -397,7 +417,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
                 bonus -
                 history[side][move.from()][move.to()] * std::abs(bonus) / 16384;
 
-            //malus for searched quiets that didn't cut
+            // malus for searched quiets that didn't cut
             for (int qi = 0; qi < searchedQuietCount - 1; qi++) {
               Move bad = searchedQuiets[qi];
               history[side][bad.from()][bad.to()] -=
@@ -419,7 +439,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     return pos.inCheck<c>() ? (-MATE_SCORE + ply) : 0;
   }
 
-  //store to TT
+  // store to TT
   int flag = (bestScore >= beta)           ? HASH_FLAG_BETA
              : (bestScore > originalAlpha) ? HASH_FLAG_EXACT
                                            : HASH_FLAG_ALPHA;
@@ -443,7 +463,7 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 
   bool inCheck = pos.inCheck<c>();
 
-  //stand pat
+  // stand pat
   int standPat = -INFINITE;
   if (!inCheck) {
     standPat = eval.EvaluateBoard(pos);
@@ -456,14 +476,14 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
       alpha = standPat;
     }
 
-    //delta pruning
+    // delta pruning
     constexpr int DELTA_MARGIN = 1225;
     if (standPat + DELTA_MARGIN < alpha) {
       return alpha;
     }
   }
 
-  //generate all moves when in check, otherwise only captures+promotions
+  // generate all moves when in check, otherwise only captures+promotions
   MoveList movelist;
   if (inCheck) {
     gen.GenerateAllMoves<c>(pos, movelist);
@@ -477,14 +497,15 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 
   if (inCheck) {
     Move ttMove = NO_MOVE;
-    orderer.ScoreMoves(pos, movelist, ttMove, stack[ply].killers,
-                       history, NO_MOVE, counterMoves);
+    orderer.ScoreMoves(pos, movelist, ttMove, stack[ply].killers, history,
+                       NO_MOVE, counterMoves);
   } else {
     orderer.ScoreCaptures(pos, movelist);
   }
 
   int legalMoves = 0;
-  for (const Move &move : movelist) {
+  for (int i = 0; i < movelist.size(); ++i) {
+    Move move = orderer.PickNextMove(movelist, i);
     pos.makemove<c>(move);
 
     if (pos.inCheck<c>()) {

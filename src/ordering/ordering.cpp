@@ -188,11 +188,11 @@ void MoveOrderer::ScoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
             int side=pos.sideToMove();
             int hscore=history[side][move.from()][move.to()];
             //just ensuring that hscore can not exceed killer moves
-            if(hscore>16000) hscore=16000;
-            scores[i]=hscore;
+            if (hscore > 16000) hscore = 16000;
+            scores[i] = hscore;
         }
     }
-    
+
     for (int i = 0; i < moves.size(); ++i) {
         int bestIdx = i;
         for (int j = i + 1; j < moves.size(); ++j) {
@@ -207,21 +207,24 @@ void MoveOrderer::ScoreMoves(const Position& pos, MoveList& moves, Move ttMove, 
     }
 }
 
+Move MoveOrderer::PickNextMove(MoveList& moves, int startIndex) {
+    return moves[startIndex];
+}
+
 void MoveOrderer::ScoreCaptures(const Position& pos, MoveList& captures) {
-    
     for (int i = 0; i < captures.size(); i++) {
         const Move& move = captures[i];
         scores[i] = see(pos, move);
     }
-    
+
     for (int i = 0; i < captures.size(); ++i) {
-        int bestIdx=i;
+        int bestIdx = i;
         for (int j = i + 1; j < captures.size(); ++j) {
             if (scores[j] > scores[bestIdx]) {
-                bestIdx=j;
+                bestIdx = j;
             }
         }
-        if(bestIdx!=i){
+        if (bestIdx != i) {
             std::swap(captures[i], captures[bestIdx]);
             std::swap(scores[i], scores[bestIdx]);
         }

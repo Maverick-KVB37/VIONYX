@@ -1,7 +1,7 @@
 #include <iostream>
 #include "../src/uci/uci.h"
 
-int main(int argc, char* argv[]) {
+int main() {
     std::cout.setf(std::ios::unitbuf);
     std::cin.setf(std::ios::unitbuf);
 

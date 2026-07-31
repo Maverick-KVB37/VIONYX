@@ -21,31 +21,29 @@ namespace ASTROVE::eval {
         return CalculateFinalScore(pos);
     }
 
-    void Evaluator::initialize(const Position& pos) {
+    void Evaluator::initialize(const Position& /*pos*/) {
         evalData = EvaluationData{};
     }
 
     void Evaluator::EvaluateMaterialAndPlacement(const Position& pos){
-        for(PieceType pt=Pawn;pt<=King;pt=PieceType(pt+1)){
-            //so white pieces
-            Bitboard w=pos.pieces(White,pt);
-            while(w){
-                Square sq=poplsb(w);
-                evalData.add(PieceValues[pt]);
-                evalData.add(PSQT[pt][White][sq]);
-            }
-            //blck
-            Bitboard b=pos.pieces(Black,pt);
-            while(b){
-                Square sq=poplsb(b);
-                evalData.subtract(PieceValues[pt]);
-                evalData.subtract(PSQT[pt][Black][sq]);
-            }
-        }
+        evalData.mg += pos.getMgScore();
+        evalData.eg += pos.getEgScore();
     }
 
     //function for Evaluate Pawn
     void Evaluator::EvaluatePawns(const Position& pos){
+        // Probe pawn hash table
+        int32_t cachedMg, cachedEg;
+        if (pawnTable.probe(pos.getPawnKey(), cachedMg, cachedEg)) {
+            evalData.mg += cachedMg;
+            evalData.eg += cachedEg;
+            return;
+        }
+
+        // Save current eval to compute delta
+        int32_t mgBefore = evalData.mg;
+        int32_t egBefore = evalData.eg;
+
         Bitboard whitePawns = pos.pawns<White>();
         Bitboard blackPawns =pos.pawns<Black>();
 
@@ -139,6 +137,9 @@ namespace ASTROVE::eval {
                 }
             }
         }
+
+        // Store pawn eval delta in pawn hash table
+        pawnTable.store(pos.getPawnKey(), evalData.mg - mgBefore, evalData.eg - egBefore);
     }
 
     void Evaluator::EvaluateMobility(const Position& pos){
@@ -375,16 +376,7 @@ namespace ASTROVE::eval {
         }
     }
     int Evaluator::CalculateGamePhase(const Position& pos) const {
-    
-        int phase = 0;
-        phase += popcount(pos.knights<White>()) + popcount(pos.knights<Black>());
-        phase += popcount(pos.bishops<White>()) + popcount(pos.bishops<Black>());
-        phase += 2 * (popcount(pos.rooks<White>()) + popcount(pos.rooks<Black>()));
-        phase += 4 * (popcount(pos.queens<White>()) + popcount(pos.queens<Black>()));
-    
-        phase = std::clamp(phase, 0, 24);
-    
-        return phase;
+        return std::clamp(pos.getPhase(), 0, 24);
     }
 
     Score Evaluator::CalculateFinalScore(const Position& pos) const {

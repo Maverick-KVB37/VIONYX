@@ -113,6 +113,30 @@ bool TranspositionTable::probe(uint64_t key, int depth, int alpha,
     return false;
 }
 
+// Probe for singular extension: returns ttDepth, ttFlag, ttScore without cutoff logic
+bool TranspositionTable::probeForSE(uint64_t key, int& ttDepth, int& ttFlag,
+                                    int& score, Move& bestMove, int ply) const {
+    size_t index = key % (numEntries / MAX_BUCKETS);
+    TTEntry* bucket = &table[index * MAX_BUCKETS];
+
+    for (int i = 0; i < MAX_BUCKETS; ++i) {
+        const TTEntry& entry = bucket[i];
+        if (entry.key != key) continue;
+
+        bestMove = entry.bestMove;
+        ttDepth = entry.depth;
+        ttFlag = entry.flag;
+
+        int stored = entry.score;
+        if (stored >= 49000) stored -= ply;
+        else if (stored <= -49000) stored += ply;
+
+        score = stored;
+        return true;
+    }
+    return false;
+}
+
 
 // calculate hash table fill ratio
 int TranspositionTable::hashfull() const {

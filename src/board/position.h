@@ -18,6 +18,7 @@ class StateInfo {
 public:
   // 8-byte types packed at the top
   uint64_t hashKey;
+  uint64_t pawnKey;
   Bitboard checkers;
   Bitboard pinMaskHV;
   Bitboard pinMaskD;
@@ -30,7 +31,7 @@ public:
   U8 halfMoveClock;
 
   StateInfo()
-      : hashKey(0), checkers(EMPTY_BB), pinMaskHV(EMPTY_BB), pinMaskD(EMPTY_BB),
+      : hashKey(0), pawnKey(0), checkers(EMPTY_BB), pinMaskHV(EMPTY_BB), pinMaskD(EMPTY_BB),
         previous(nullptr), enpassantSquare(NO_SQ), captured(None),
         castlingRights(NO_CASTLING), halfMoveClock(0) {}
 };
@@ -81,6 +82,7 @@ public:
   inline Bitboard occupancy() const { return occupancyAll; }
 
   uint64_t generateHashKey() const;
+  uint64_t generatePawnKey() const;
 
   inline bool isDrawByRepetition(int ply) const;
   inline bool isDrawByFiftyMove() const;
@@ -117,12 +119,26 @@ private:
   int historyCount = 0;
   uint16_t fullMoveCounter;
 
+  int mgScore = 0;
+  int egScore = 0;
+  int gamePhase = 0;
+
+public:
+  inline int getMgScore() const { return mgScore; }
+  inline int getEgScore() const { return egScore; }
+  inline int getPhase() const { return gamePhase; }
+  inline uint64_t getPawnKey() const { return state->pawnKey; }
+
+private:
   void placePiece(Piece piece, Square sq);
   void removePiece(Square sq);
   void movePiece(Square from, Square to);
 
   inline void togglePiece(Piece piece, Square sq) {
     state->hashKey ^= zobrist.pieceKeys[piece][sq];
+    if (piece == WhitePawn || piece == BlackPawn) {
+      state->pawnKey ^= zobrist.pieceKeys[piece][sq];
+    }
   }
 
   inline void toggleEnpassant(Square sq) {
@@ -197,6 +213,7 @@ template <Color c> void Position::makemove(Move move) {
   newState->previous = state;
 
   newState->hashKey = state->hashKey;
+  newState->pawnKey = state->pawnKey;
   newState->castlingRights = state->castlingRights;
   newState->enpassantSquare = state->enpassantSquare;
   newState->halfMoveClock = state->halfMoveClock;
