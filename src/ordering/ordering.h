@@ -16,7 +16,7 @@ public:
     Move PickNextMove(MoveList& moves, int startIndex);
 
     // Score capture moves for ordering using SEE
-    void ScoreCaptures(const Position& pos, MoveList& captures);
+    void ScoreCaptures(const Position& pos, MoveList& captures, Move ttMove);
 
     // Static Exchange Evaluation to order captures
     int see(const Position& pos, Move move);

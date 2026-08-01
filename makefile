@@ -24,7 +24,7 @@ BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVEBUGSFIX
+TARGET := $(BIN_DIR)/ASTROVEBUGSFIX1
 
 all: $(TARGET)
 

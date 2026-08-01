@@ -195,18 +195,13 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     return 0;
 
   // TT probe
-  int ttScore;
+  int ttScore = 0;
   Move ttMove = NO_MOVE;
-  int ttDepth = 0, ttFlag = 0;
-  bool ttHit = tt.probeForSE(pos.hash(), ttDepth, ttFlag, ttScore, ttMove, ply);
 
-  if (ttHit && ttDepth >= depth && !PvNode) {
-    if (ttFlag == HASH_FLAG_EXACT)
+  if (tt.probe(pos.hash(), depth, alpha, beta, ttScore, ttMove, ply)) {
+    if (!PvNode) {
       return ttScore;
-    if (ttFlag == HASH_FLAG_ALPHA && ttScore <= alpha)
-      return ttScore;
-    if (ttFlag == HASH_FLAG_BETA && ttScore >= beta)
-      return ttScore;
+    }
   }
 
   bool inCheck = pos.inCheck<c>();
@@ -252,28 +247,28 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     if (staticEval >= beta + 200)
       R++;
 
-    if (depth - R - 1 >= 0) {
-      pos.makeNullMove<c>();
+    int nullDepth = std::max(0, depth - R - 1);
 
-      int score = -pvs<~c, false>(depth - R - 1, ply + 1, -beta, -beta + 1,
-                                  !cutNode, NO_MOVE);
+    pos.makeNullMove<c>();
 
-      pos.unmakeNullMove<c>();
-      if (stopFlag)
-        return 0;
-      if (score >= beta) {
-        if (score > MATE_SCORE - MAX_PLY) {
-          score = beta;
-        }
-        // Verification search at high depth to prevent null move zugzwang
-        if (depth >= 12) {
-          int verScore = pvs<c, false>(depth - R - 1, ply + 1, beta - 1, beta,
-                                       false, previousMove);
-          if (verScore >= beta)
-            return score;
-        } else {
+    int score = -pvs<~c, false>(nullDepth, ply + 1, -beta, -beta + 1, !cutNode,
+                                NO_MOVE);
+
+    pos.unmakeNullMove<c>();
+    if (stopFlag)
+      return 0;
+    if (score >= beta) {
+      if (score > MATE_SCORE - MAX_PLY) {
+        score = beta;
+      }
+      // Verification search at high depth to prevent null move zugzwang
+      if (depth >= 12) {
+        int verScore = pvs<c, false>(nullDepth, ply + 1, beta - 1, beta, false,
+                                     previousMove);
+        if (verScore >= beta)
           return score;
-        }
+      } else {
+        return score;
       }
     }
   }
@@ -448,37 +443,61 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   return bestScore;
 }
 
+// NEVER FORCED TO MAKE A BAD CAPTURE
 template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
+  // cap the search at MAXPLY-1 to prevent array out of Bounds Access
   if (ply >= MAX_PLY - 1) {
     return eval.EvaluateBoard(pos);
   }
 
   nodes++;
 
+  // Checks Time After Every 2048 Nodes
   if ((nodes & 2047) == 0) {
     CheckTime();
   }
+
   if (stopFlag)
     return 0;
 
+  // Checks Transposition Table if this position was already visited then
+  // instantly return the score
+  int ttScore = 0;
+  Move ttMove = NO_MOVE;
+  if (tt.probe(pos.hash(), 0, alpha, beta, ttScore, ttMove, ply)) {
+    return ttScore;
+  }
+
+  int originalAlpha = alpha;
+  int bestScore = -INFINITE;
+  Move bestMove = NO_MOVE;
+
   bool inCheck = pos.inCheck<c>();
 
-  // stand pat
+  // STAND PAT AND DELTA PRUNING
   int standPat = -INFINITE;
   if (!inCheck) {
+    // evaluate current position with neural network
     standPat = eval.EvaluateBoard(pos);
+    bestScore = standPat;
 
+    // CHECK BETA CUTOFF FIRST
     if (standPat >= beta) {
-      return beta;
+      tt.store(pos.hash(), 0, HASH_FLAG_BETA, standPat, 0, ply, NO_MOVE);
+      return beta; // EXECUTION STOP HERE AND RETURN IMMEDIATELY
     }
 
+    // CHECK ALPHA CUTOFF
     if (standPat > alpha) {
       alpha = standPat;
     }
 
-    // delta pruning
+    // Delta pruning — skip if we have a pawn about to promote
+    constexpr Rank promoRank = (c == White) ? RANK_7 : RANK_2;
+    bool canPromote = (pos.pawns<c>() & MASKRANK[promoRank]) != 0;
+
     constexpr int DELTA_MARGIN = 1225;
-    if (standPat + DELTA_MARGIN < alpha) {
+    if (!canPromote && standPat + DELTA_MARGIN < alpha) {
       return alpha;
     }
   }
@@ -496,11 +515,10 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
   }
 
   if (inCheck) {
-    Move ttMove = NO_MOVE;
     orderer.ScoreMoves(pos, movelist, ttMove, stack[ply].killers, history,
                        NO_MOVE, counterMoves);
   } else {
-    orderer.ScoreCaptures(pos, movelist);
+    orderer.ScoreCaptures(pos, movelist, ttMove);
   }
 
   int legalMoves = 0;
@@ -519,18 +537,29 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 
     pos.unmakemove<c>(move);
 
-    if (score >= beta) {
-      return beta;
-    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestMove = move;
 
-    if (score > alpha) {
-      alpha = score;
+      if (score >= beta) {
+        tt.store(pos.hash(), 0, HASH_FLAG_BETA, score, 0, ply, bestMove);
+        return beta;
+      }
+
+      if (score > alpha) {
+        alpha = score;
+      }
     }
   }
 
   if (inCheck && legalMoves == 0) {
-    return -MATE_SCORE + ply;
+    int mateScore = -MATE_SCORE + ply;
+    tt.store(pos.hash(), 0, HASH_FLAG_EXACT, mateScore, 0, ply, NO_MOVE);
+    return mateScore;
   }
+
+  int flag = (bestScore > originalAlpha) ? HASH_FLAG_EXACT : HASH_FLAG_ALPHA;
+  tt.store(pos.hash(), 0, flag, bestScore, 0, ply, bestMove);
 
   return alpha;
 }

@@ -211,10 +211,14 @@ Move MoveOrderer::PickNextMove(MoveList& moves, int startIndex) {
     return moves[startIndex];
 }
 
-void MoveOrderer::ScoreCaptures(const Position& pos, MoveList& captures) {
+void MoveOrderer::ScoreCaptures(const Position& pos, MoveList& captures, Move ttMove) {
     for (int i = 0; i < captures.size(); i++) {
         const Move& move = captures[i];
-        scores[i] = see(pos, move);
+        if (move == ttMove) {
+            scores[i] = 1000000;
+        } else {
+            scores[i] = see(pos, move);
+        }
     }
 
     for (int i = 0; i < captures.size(); ++i) {
