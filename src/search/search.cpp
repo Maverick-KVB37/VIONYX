@@ -20,7 +20,7 @@ void Searcher::initLmrTable() {
       lmrTable[d][m] = int(0.75 + log(d) * log(m) / 2.25);
 }
 
-// age history scores (halve) before each search
+// Ages history scores by halving them before each search iteration.
 void Searcher::ageHistory() {
   for (int c = 0; c < 2; c++)
     for (int f = 0; f < 64; f++)
@@ -107,7 +107,11 @@ void Searcher::IterativeDeepening() {
     if (stopFlag && depth > 1)
       break;
 
-    // aspiration window
+    /*
+    | Aspiration Window | | We search with a narrow window around the previous
+    score. If the score      | | falls outside this window, we re-search with a
+    wider window.                |
+    */
     int alpha = -INFINITE;
     int beta = INFINITE;
     int delta = 25;
@@ -131,14 +135,22 @@ void Searcher::IterativeDeepening() {
           break;
       }
 
-      // exponential widening on fail-low
+      /*
+      | Exponential Widening on Fail-Low | | If the search fails low, we widen
+      the lower bound of our window           | | exponentially and search
+      again.                                           |
+      */
       if (score <= alpha) {
         beta = (alpha + beta) / 2;
         alpha = std::max(-INFINITE, alpha - delta);
         delta *= 2;
         continue;
       }
-      // exponential widening on fail-high
+      /*
+      | Exponential Widening on Fail-High | | If the search fails high, we widen
+      the upper bound of our window          | | exponentially and search again.
+      |
+      */
       if (score >= beta) {
         beta = std::min(INFINITE, beta + delta);
         delta *= 2;
@@ -194,7 +206,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   if (stopFlag)
     return 0;
 
-  // TT probe
+  /*
+  | TT Cutoff  If we have already seen this position before and the |
+  | stored score is useful, we can use the previously stored score to avoid | |
+  searching the same position again.                                          |
+  */
   int ttScore = 0;
   Move ttMove = NO_MOVE;
 
@@ -210,7 +226,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     extension = 1;
   }
 
-  // IID
+  /*
+  | Internal Iterative Deepening (IID)                                        |
+  | If we don't have a TT move for a PV node, we perform a shallower search   |
+  | first to find a good move to guide the main search.                       |
+  */
   if (PvNode && depth > 3 && ttMove == NO_MOVE && !inCheck) {
     int iidDepth = depth - 2;
     pvs<c, PvNode>(iidDepth, ply, alpha, beta, false, previousMove);
@@ -231,7 +251,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   bool improving =
       (!inCheck && ply >= 2 && staticEval > stack[ply - 2].staticEval);
 
-  // RFP (reverse futility pruning)
+  /*
+  | Reverse Futility Pruning (RFP)                                            |
+  | If the static evaluation is significantly higher than beta, we assume     |
+  | the position is too good for the opponent and we can prune it.            |
+  */
   if (!PvNode && !inCheck && depth <= 8 && pos.hasNonPawnMaterial<c>() &&
       abs(beta) < MATE_SCORE - 100) {
     int margin = improving ? 120 * depth : 80 * depth;
@@ -240,7 +264,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     }
   }
 
-  // NMP (null move pruning)
+  /*
+  | Null Move Pruning (NMP)                                                   |
+  | We allow the opponent to make a free move. If the resulting score         |
+  | still causes a beta cutoff, we can safely prune this branch.              |
+  */
   if (!PvNode && depth >= 3 && !inCheck && ply > 0 && staticEval >= beta &&
       pos.hasNonPawnMaterial<c>()) {
     int R = 3 + (depth / 6) + improving;
@@ -273,7 +301,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     }
   }
 
-  // futility pruning
+  /*
+  | Futility Pruning                                                          |
+  | If the static evaluation is very low, we assume quiet moves cannot        |
+  | improve the score enough to exceed alpha, allowing us to prune them.      |
+  */
   bool futilityprun = false;
   if (depth <= 4 && !inCheck && !PvNode && std::abs(alpha) < MATE_SCORE - 100 &&
       std::abs(beta) < MATE_SCORE - 100) {
@@ -306,7 +338,10 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     if (move == stack[ply].excludedMove)
       continue;
 
-    // LMP
+    /*
+    | Late Move Pruning (LMP) | | We skip searching quiet moves that are ordered
+    very late, as they are     | | highly unlikely to improve the position. |
+    */
     if (!PvNode && !inCheck && depth < 8 && !move.IsCapture() &&
         !move.IsPromotion()) {
       int lmpthre = improving ? (3 + depth * depth) : (3 + depth * depth / 2);
@@ -341,7 +376,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     int score;
     bool needfullsearch = true;
 
-    // LMR (Late Move Reductions)
+    /*
+    | Late Move Reductions (LMR) | | Moves ordered later in the move list are
+    less likely to be good, so we    | | search them with reduced depth to save
+    time.                              |
+    */
     if (depth >= 3 && legalMoves > 3 && !inCheck && !move.IsCapture() &&
         !move.IsPromotion() && !givesCheck) {
 
@@ -434,7 +473,11 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     return pos.inCheck<c>() ? (-MATE_SCORE + ply) : 0;
   }
 
-  // store to TT
+  /*
+  | Store to TT                                                               |
+  | Save the evaluated score and the best move in the transposition table     |
+  | for future use in similar positions.                                      |
+  */
   int flag = (bestScore >= beta)           ? HASH_FLAG_BETA
              : (bestScore > originalAlpha) ? HASH_FLAG_EXACT
                                            : HASH_FLAG_ALPHA;
@@ -443,16 +486,15 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   return bestScore;
 }
 
-// NEVER FORCED TO MAKE A BAD CAPTURE
 template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
-  // cap the search at MAXPLY-1 to prevent array out of Bounds Access
+  // Cap the search at MAX_PLY - 1 to prevent array out of bounds access
   if (ply >= MAX_PLY - 1) {
     return eval.EvaluateBoard(pos);
   }
 
   nodes++;
 
-  // Checks Time After Every 2048 Nodes
+  // Check time after every 2048 nodes
   if ((nodes & 2047) == 0) {
     CheckTime();
   }
@@ -460,8 +502,7 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
   if (stopFlag)
     return 0;
 
-  // Checks Transposition Table if this position was already visited then
-  // instantly return the score
+  // Check Transposition Table
   int ttScore = 0;
   Move ttMove = NO_MOVE;
   if (tt.probe(pos.hash(), 0, alpha, beta, ttScore, ttMove, ply)) {
@@ -474,20 +515,24 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 
   bool inCheck = pos.inCheck<c>();
 
-  // STAND PAT AND DELTA PRUNING
+  /*
+  | Stand Pat and Delta Pruning                                               |
+  | In quiescence search, we can 'stand pat' if the static eval is good.      |
+  | Delta pruning skips moves that can't possibly improve the score enough.   |
+  */
   int standPat = -INFINITE;
   if (!inCheck) {
-    // evaluate current position with neural network
     standPat = eval.EvaluateBoard(pos);
     bestScore = standPat;
 
-    // CHECK BETA CUTOFF FIRST
+    // Check beta cutoff first
     if (standPat >= beta) {
       tt.store(pos.hash(), 0, HASH_FLAG_BETA, standPat, 0, ply, NO_MOVE);
-      return beta; // EXECUTION STOP HERE AND RETURN IMMEDIATELY
+      return standPat; // fail-soft: return the actual value that caused the
+                       // cutoff
     }
 
-    // CHECK ALPHA CUTOFF
+    // Check alpha cutoff
     if (standPat > alpha) {
       alpha = standPat;
     }
@@ -502,7 +547,7 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
     }
   }
 
-  // generate all moves when in check, otherwise only captures+promotions
+  // Generate all moves when in check, otherwise only captures and promotions
   MoveList movelist;
   if (inCheck) {
     gen.GenerateAllMoves<c>(pos, movelist);

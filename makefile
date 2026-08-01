@@ -24,7 +24,7 @@ BUILD_DIR := build
 BIN_DIR := .
 
 # Target executable
-TARGET := $(BIN_DIR)/ASTROVEBUGSFIX1
+TARGET := $(BIN_DIR)/ASTROVE
 
 all: $(TARGET)
 
@@ -37,32 +37,25 @@ debug: clean $(TARGET)
 # Source files - automatically find all .cpp files
 BOARD_SRC := $(wildcard $(SRC_DIR)/board/*.cpp)
 CORE_SRC := $(wildcard $(SRC_DIR)/core/*.cpp)
-ENDGAME_SRC := $(wildcard $(SRC_DIR)/endgame/*.cpp)
 EVAL_SRC := $(wildcard $(SRC_DIR)/evaluation/*.cpp)
 ORDER_SRC := $(wildcard $(SRC_DIR)/ordering/*.cpp)
 SEARCH_SRC := $(wildcard $(SRC_DIR)/search/*.cpp)
-SEARCH_EXT_SRC := $(wildcard $(SRC_DIR)/search/extensions/*.cpp)
-SEARCH_PRUNE_SRC := $(wildcard $(SRC_DIR)/search/pruning/*.cpp)
 TABLE_SRC := $(wildcard $(SRC_DIR)/table/*.cpp)
-TABLE_TUNE_SRC := $(wildcard $(SRC_DIR)/table/tuning/*.cpp)
 UCI_SRC := $(wildcard $(SRC_DIR)/uci/*.cpp)
-UTILS_SRC := $(wildcard $(SRC_DIR)/utils/*.cpp)
 MAIN_SRC := $(SRC_DIR)/main.cpp
 
 # Combine all sources
-SOURCES := $(BOARD_SRC) $(CORE_SRC) $(ENDGAME_SRC) $(EVAL_SRC) \
-           $(ORDER_SRC) $(SEARCH_SRC) $(SEARCH_EXT_SRC) $(SEARCH_PRUNE_SRC) \
-           $(TABLE_SRC) $(TABLE_TUNE_SRC) $(UCI_SRC) $(UTILS_SRC) $(MAIN_SRC)
+SOURCES := $(BOARD_SRC) $(CORE_SRC) $(EVAL_SRC) \
+           $(ORDER_SRC) $(SEARCH_SRC) \
+           $(TABLE_SRC) $(UCI_SRC) $(MAIN_SRC)
 
 # Object files (in build directory, preserving structure)
 OBJECTS := $(SOURCES:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 
 # Create necessary directories
-DIRS := $(BUILD_DIR) $(BUILD_DIR)/board $(BUILD_DIR)/core $(BUILD_DIR)/endgame \
+DIRS := $(BUILD_DIR) $(BUILD_DIR)/board $(BUILD_DIR)/core \
         $(BUILD_DIR)/evaluation $(BUILD_DIR)/ordering $(BUILD_DIR)/search \
-        $(BUILD_DIR)/search/extensions $(BUILD_DIR)/search/pruning \
-        $(BUILD_DIR)/table $(BUILD_DIR)/table/tuning $(BUILD_DIR)/uci \
-        $(BUILD_DIR)/utils
+        $(BUILD_DIR)/table $(BUILD_DIR)/uci
 
 # Default target
 .PHONY: all

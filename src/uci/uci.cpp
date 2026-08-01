@@ -2,7 +2,6 @@
 #include "../core/magic.h"
 #include "../core/zobrist.h"
 #include "../search/search.h"
-#include "../utils/perft.h"
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -140,8 +139,6 @@ void UCI::uciLoop() {
       break;
     } else if (command == "print") {
       pos->print();
-    } else if (command == "perft") {
-      runPerftTests();
     }
   }
 }

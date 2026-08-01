@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge&logo=cplusplus&logoColor=white" alt="C++17"/>
   <img src="https://img.shields.io/badge/UCI-Compatible-green?style=for-the-badge" alt="UCI"/>
-  <img src="https://img.shields.io/badge/Elo-~2600-orange?style=for-the-badge" alt="Elo"/>
+  <img src="https://img.shields.io/badge/Elo-~2645-orange?style=for-the-badge" alt="Elo"/>
   <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -21,7 +21,7 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 ### Estimated Rating
 
-# **~2597 Elo**
+# **~2645 Elo**
 
 *Measured via SPRT against SF2500 baseline*
 
@@ -85,7 +85,7 @@ src/
 │   └── zobrist.cpp/h      #   Zobrist hash key generation
 ├── board/                 # Position representation & move generation
 │   ├── position.cpp/h     #   Board state, make/unmake, FEN parsing
-│   └── movegen.h          #   Legal move generator
+│   └── movegen.cpp/h      #   Legal move generator
 ├── search/                # Search algorithm & time management
 │   ├── search.cpp/h       #   Iterative deepening + PVS + quiescence
 │   └── timemanager.cpp/h  #   Adaptive time allocation
@@ -94,13 +94,11 @@ src/
 │   └── psqt.cpp/h         #   Piece-square tables
 ├── ordering/              # Move ordering heuristics
 │   └── ordering.cpp/h     #   MVV-LVA, killers, history, countermoves
-├── table/                 # Transposition table
+├── table/                 # Hash tables
+│   ├── pawnhash.cpp/h     #   Pawn evaluation cache
 │   └── tt.cpp/h           #   64MB TT with aging & bucket system
-├── uci/                   # UCI protocol handler
-│   └── uci.cpp/h          #   Full UCI implementation
-└── utils/                 # Testing & debugging
-    ├── perft.cpp/h        #   Perft correctness verification
-    └── test_perft.h       #   Perft test positions
+└── uci/                   # UCI protocol handler
+    └── uci.cpp/h          #   Full UCI implementation
 ```
 
 ---
@@ -161,28 +159,35 @@ IterativeDeepening()
 
 ### Evaluation (Hand-Crafted)
 
-ASTROVE uses a **tapered evaluation** that smoothly interpolates between middlegame and endgame scores based on remaining material (game phase).
+ASTROVE relies on a robust **tapered evaluation** system. Instead of assigning a single static score, the engine computes two distinct scores for every position: one tailored for the **Middlegame (MG)** and one for the **Endgame (EG)**. These scores are seamlessly interpolated based on the current *game phase* (which is determined by the total non-pawn material remaining on the board).
 
-```
+```text
 final_score = (mg_score × phase + eg_score × (max_phase - phase)) / max_phase
 ```
 
-| Feature | Middlegame | Endgame | Notes |
-|:--|:-:|:-:|:--|
-| **Material** | ✔ | ✔ | Tapered piece values (Knights stronger in MG, Rooks in EG) |
-| **Piece-Square Tables** | ✔ | ✔ | Separate MG/EG tables for all piece types |
-| **Mobility** | ✔ | ✔ | Per-piece bonus tables (Knight: 0–8, Bishop: 0–13, Rook: 0–14) |
-| **Isolated Pawns** | −15 | −20 | Penalizes pawns with no adjacent friendly pawns |
-| **Doubled Pawns** | −10 | −20 | Penalizes multiple pawns on the same file |
-| **Backward Pawns** | −10 | −20 | Penalizes pawns that can't advance safely |
-| **Passed Pawns** | +5…+150 | +10…+240 | Massive bonus scaling with rank, dominant in endgames |
-| **Knight Outposts** | +10…+40 | +5…+20 | Rank 4–6, pawn-supported, safe from enemy pawns |
-| **Bishop Pair** | +30 | +40 | Bonus for retaining both bishops |
-| **Rook on Open File** | +20 | +40 | Bonus for rooks on files with no pawns |
-| **Rook on Semi-Open** | +10 | +20 | Bonus for rooks on files with only enemy pawns |
-| **King Safety** | ✔ | — | Pawn shield bonus + open file penalty, tapered to zero in EG |
-| **King Attack Table** | ✔ | — | Weighted attacker count → penalty lookup table (100 entries) |
-| **Tempo** | +20 | +10 | Small bonus for the side to move |
+This tapered approach allows ASTROVE to dynamically shift its strategic priorities as pieces are traded off. For instance, it fiercely protects the King during complex middlegames, but heavily incentivizes King activation and Passed Pawn pushes in the endgame.
+
+#### Key Evaluation Features
+
+- **Material & Piece-Square Tables (PSQT)**
+  - Features fully tapered piece values (e.g., Knights are valued higher in closed middlegames, while Rooks dominate open endgames).
+  - Detailed MG/EG piece-square tables encourage early central control and rapid piece development.
+
+- **Pawn Structure Analysis**
+  - **Weaknesses:** Precisely calculates penalties for *Isolated*, *Doubled*, and *Backward* pawns.
+  - **Passed Pawns:** Awards massive, rank-dependent bonuses for passed pawns. A passed pawn reaching the 7th rank in an endgame is evaluated as nearly equivalent to a minor piece.
+  - **Pawn Hash Table:** A dedicated caching layer specifically for pawn structures speeds up the overall evaluation process dramatically.
+
+- **Piece Mobility & Coordination**
+  - **Mobility:** Dynamic bonuses are awarded based on the number of safe, pseudo-legal squares available to Knights, Bishops, and Rooks.
+  - **Knight Outposts:** Strong bonuses for Knights occupying central outposts (ranks 4–6) that are anchored by friendly pawns and impenetrable to enemy pawns.
+  - **Bishop Pair:** A permanent strategic bonus (~30–40 centipawns) is applied for retaining both Bishops.
+  - **Rook Files:** Grants control bonuses for Rooks placed on open or semi-open files.
+
+- **Dynamic King Safety**
+  - Deeply evaluated during the middlegame, but phased out to zero in the endgame.
+  - **Pawn Shield:** Checks the structural integrity of the pawns immediately defending the King, penalizing open files near the King.
+  - **Attack Table:** Computes a localized "danger score" by tracking the number and weight of enemy pieces attacking the King's inner ring, cross-referenced with a non-linear 100-entry penalty lookup table.
 
 ### Transposition Table
 
@@ -314,7 +319,7 @@ ASTROVE's design draws inspiration from the open-source chess programming commun
 
 ## License
 
-MIT License — Copyright © 2025 **Kirti Vardhan Bhushan**
+MIT License — Copyright © 2026 **Kirti Vardhan Bhushan**
 
 See [LICENSE](LICENSE) for full details.
 

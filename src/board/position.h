@@ -31,9 +31,9 @@ public:
   U8 halfMoveClock;
 
   StateInfo()
-      : hashKey(0), pawnKey(0), checkers(EMPTY_BB), pinMaskHV(EMPTY_BB), pinMaskD(EMPTY_BB),
-        previous(nullptr), enpassantSquare(NO_SQ), captured(None),
-        castlingRights(NO_CASTLING), halfMoveClock(0) {}
+      : hashKey(0), pawnKey(0), checkers(EMPTY_BB), pinMaskHV(EMPTY_BB),
+        pinMaskD(EMPTY_BB), previous(nullptr), enpassantSquare(NO_SQ),
+        captured(None), castlingRights(NO_CASTLING), halfMoveClock(0) {}
 };
 
 class Position {
