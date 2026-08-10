@@ -104,6 +104,7 @@ void Searcher::IterativeDeepening() {
   ageHistory();
 
   for (int depth = 1; depth <= limits.depth; ++depth) {
+    selDepth=0;
     if (stopFlag && depth > 1)
       break;
 
@@ -340,8 +341,6 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
 
   for (int i = 0; i < moves.size(); ++i) {
     Move move = orderer.PickNextMove(moves, i);
-    if (move == stack[ply].excludedMove)
-      continue;
 
     /*
     | Late Move Pruning (LMP) | | We skip searching quiet moves that are ordered
@@ -495,11 +494,15 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
 
 template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
   // Cap the search at MAX_PLY - 1 to prevent array out of bounds access
-  if (ply >= MAX_PLY - 1) {
+  if(ply >= MAX_PLY-1){
     return eval.EvaluateBoard(pos);
   }
 
   nodes++;
+
+  if(ply>selDepth){
+    selDepth=ply; 
+  }
 
   // Check time after every 2048 nodes
   if ((nodes & 2047) == 0) {
@@ -630,23 +633,26 @@ void Searcher::CheckTime() {
 }
 
 void Searcher::UpdateUciInfo(int depth, int score, const PVLine &pv) {
-  std::cout << "info depth " << depth;
+  std::cout<<"info depth "<<depth<<" seldepth "<<selDepth;
 
-  if (std::abs(score) >= MATE_BOUND) {
-    int mate_in_plies = MATE_SCORE - std::abs(score);
-    int mate_in_moves = (mate_in_plies + 1) / 2;
-    std::cout << " score mate " << (score > 0 ? mate_in_moves : -mate_in_moves);
-  } else {
-    std::cout << " score cp " << score;
+  if(std::abs(score)>=MATE_BOUND){
+    int mateplie=MATE_SCORE-std::abs(score);
+    int matemoves=(mateplie+1)/2;
+
+    std::cout<<" score mate "<<(score>0 ? matemoves : -matemoves);
+  } 
+  else{
+    std::cout<<" score cp "<<score;
   }
 
-  std::cout << " nodes " << nodes << " nps " << info.nps << " time "
-            << info.time << " pv ";
-  int maxMoves = std::min(pv.length, MAX_PLY);
-  for (int i = 0; i < maxMoves; i++) {
-    std::cout << pv.moves[i].ToUciString() << " ";
+  std::cout<<" nodes "<<nodes<<" nps "<<info.nps<<" time "
+            <<info.time<<" pv ";
+
+  int maxMoves=std::min(pv.length,MAX_PLY);
+  for(int i=0;i<maxMoves;i++) {
+    std::cout<<pv.moves[i].ToUciString()<< " ";
   }
-  std::cout << std::endl;
+  std::cout<<std::endl;
 }
 
 bool Searcher::IsDraw(int ply) const {

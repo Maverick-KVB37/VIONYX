@@ -64,8 +64,7 @@ public:
   int doubleExtensions = 0;
 
   // 2-byte types
-  Move currentMove = NO_MOVE;
-  Move excludedMove = NO_MOVE;
+  Move currentMove=NO_MOVE;
   Move killers[2] = {NO_MOVE, NO_MOVE};
 
   // 1-byte types
@@ -74,7 +73,7 @@ public:
   SearchStack() { clear(); }
 
   void clear() {
-    currentMove = excludedMove = NO_MOVE;
+    currentMove = NO_MOVE;
     killers[0] = NO_MOVE;
     killers[1] = NO_MOVE;
     staticEval = moveCount = doubleExtensions = 0;

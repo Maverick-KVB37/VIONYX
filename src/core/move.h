@@ -3,6 +3,7 @@
 #include "types.h"
 #include <string>
 #include <vector>
+#include <cassert>
 
 // bits 0-5: from square, bits 6-11: to square, bits 12-15: flags
 using MoveData = uint16_t;
@@ -90,7 +91,12 @@ public:
   MoveList() : count(0) {}
 
   void clear() { count = 0; }
-  void Add(Move m) { moves[count++] = m; }
+  void Add(Move m){
+    assert(count < MAX_MOVES && "MoveList overflow!");
+    if (count < MAX_MOVES) {
+      moves[count++] = m;
+    } 
+  }
 
   int size() const { return count; }
   bool empty() const { return count == 0; }

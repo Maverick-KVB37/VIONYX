@@ -23,13 +23,13 @@ public:
   Bitboard pinMaskHV;
   Bitboard pinMaskD;
   StateInfo *previous;
-
+  
   // 4-byte or 1-byte types at the bottom
   Square enpassantSquare;
   Piece captured;
   U8 castlingRights;
-  U8 halfMoveClock;
-
+  U16 halfMoveClock;
+  
   StateInfo()
       : hashKey(0), pawnKey(0), checkers(EMPTY_BB), pinMaskHV(EMPTY_BB),
         pinMaskD(EMPTY_BB), previous(nullptr), enpassantSquare(NO_SQ),
@@ -519,8 +519,6 @@ inline bool Position::isDrawByRepetition(int ply) const {
 }
 
 inline bool Position::isDrawByFiftyMove() const {
-  if (state->halfMoveClock < 4)
-    return false;
   return state->halfMoveClock >= 100;
 }
 

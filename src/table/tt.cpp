@@ -141,37 +141,6 @@ bool TranspositionTable::probe(uint64_t key, int depth, int alpha, int beta,
 }
 
 /*
-| Probe for Singular Extension                                                |
-| Retrieves table information without cutoff logic to help determine if       |
-| a move is singular and should be extended.                                  |
-*/
-bool TranspositionTable::probeForSE(uint64_t key, int &ttDepth, int &ttFlag,
-                                    int &score, Move &bestMove, int ply) const {
-  size_t index = key % (numEntries / MAX_BUCKETS);
-  TTEntry *bucket = &table[index * MAX_BUCKETS];
-
-  for (int i = 0; i < MAX_BUCKETS; ++i) {
-    const TTEntry &entry = bucket[i];
-    if (entry.key != key)
-      continue;
-
-    bestMove = entry.bestMove;
-    ttDepth = entry.depth;
-    ttFlag = entry.flag;
-
-    int stored = entry.score;
-    if (stored >= 49000)
-      stored -= ply;
-    else if (stored <= -49000)
-      stored += ply;
-
-    score = stored;
-    return true;
-  }
-  return false;
-}
-
-/*
 | Hashfull Approximation                                                      |
 | Samples the first 1000 entries to estimate how full the transposition table |
 | is (per mill, i.e., out of 1000). Used for UCI output.                      |

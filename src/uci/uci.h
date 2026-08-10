@@ -8,8 +8,6 @@
 #include <sstream>
 #include <thread>
 
-extern Zobrist zobristInstance;
-
 class UCI {
 public:
   Position *pos;

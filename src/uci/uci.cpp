@@ -69,10 +69,16 @@ void UCI::uciLoop() {
           std::string moveUci;
           while (iss >> moveUci) {
             Move move = parseMove(moveUci);
-            if (pos->sideToMove() == White) {
-              pos->makemove<White>(move);
-            } else {
-              pos->makemove<Black>(move);
+            if(move!=NO_MOVE){
+              if (pos->sideToMove() == White) {
+                pos->makemove<White>(move);
+              } else {
+                pos->makemove<Black>(move);
+              }
+            }
+            else{
+              //if hit an invalid move stop parsing the rest of the line
+              break;
             }
           }
         }
@@ -95,10 +101,16 @@ void UCI::uciLoop() {
           std::string moveUci;
           while (iss >> moveUci) {
             Move move = parseMove(moveUci);
-            if (pos->sideToMove() == White) {
-              pos->makemove<White>(move);
-            } else {
-              pos->makemove<Black>(move);
+            if(move!=NO_MOVE){
+              if (pos->sideToMove() == White) {
+                pos->makemove<White>(move);
+              } else {
+                pos->makemove<Black>(move);
+              }
+            }
+            else{
+              //if hit an invalid move stop parsing the rest of the line
+              break;
             }
           }
         }

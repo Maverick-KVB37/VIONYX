@@ -197,16 +197,28 @@ void Position::parseFEN(const std::string &FEN) {
   }
 
   // en passant
-  ss >> part;
-  if (part != "-") {
-    state->enpassantSquare =
-        makesquare(File(part[0] - 'a'), Rank(part[1] - '1'));
+  ss>>part;
+  if(part != "-" && part.length()>=2){
+    char f = part[0];
+    char r = part[1];
+
+    bool validFile=(f >= 'a'&&f <= 'h');
+    bool validRank=(stm==White && r=='6') || (stm==Black && r=='3');
+
+    if(validFile && validRank){
+      state->enpassantSquare=makesquare(File(f-'a'),Rank(r-'1'));
+    } else {
+      state->enpassantSquare=NO_SQ;//reject invalid EP square
+    }
+  }
+  else {
+    state->enpassantSquare=NO_SQ;
   }
 
   // halfmove clock
   int halfmove = 0;
   if ((ss >> halfmove)) {
-    state->halfMoveClock = static_cast<U8>(halfmove);
+    state->halfMoveClock = static_cast<uint16_t>(halfmove);
   } else {
     state->halfMoveClock = 0;
   }
@@ -227,6 +239,9 @@ void Position::parseFEN(const std::string &FEN) {
 
   state->hashKey = generateHashKey();
   state->pawnKey = generatePawnKey();
+
+  historyCount=0;
+  positionHistory[historyCount++]=state->hashKey;
 }
 
 std::string Position::toFEN() const {

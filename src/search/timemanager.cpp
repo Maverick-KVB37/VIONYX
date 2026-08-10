@@ -60,6 +60,10 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
 
     // safety margin
     int64_t safetyMax = timeLeft - 150;
+
+    if(safetyMax<1){
+      safetyMax=std::max<int64_t>(1,timeLeft/2);
+    }
     if (timeForMove > safetyMax) {
       timeForMove = safetyMax;
     }
@@ -86,15 +90,16 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
 
     // min time floor
     if (timeForMove < 50) {
-      timeForMove = 50;
-    }
+      timeForMove=std::min<int64_t>(50,safetyMax);
+  }
 
     if (timeForMove < 0) {
       timeForMove = 10;
     }
 
     stopTime = startTime + std::chrono::milliseconds(timeForMove);
-  } else {
+  } 
+  else{
     // no time info, use default
     timeForMove = 1000;
     stopTime = startTime + std::chrono::milliseconds(timeForMove);
