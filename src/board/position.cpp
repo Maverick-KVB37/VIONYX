@@ -148,13 +148,24 @@ void Position::parseFEN(const std::string &FEN) {
     if (ch == '/') {
       rank--;
       file = 0;
-    } else if (isdigit(ch)) {
-      file += ch - '0';
-    } else {
+    } 
+    else if (isdigit(ch)) {
+      int skip = ch - '0';
+      //prevent skipping past the H-file (file 7)
+      if (file + skip <= 8) {
+          file += skip;
+      } else {
+          file = 8; //cap it safely at the edge
+      }
+    } 
+    else {
       Piece p = charToPiece(ch);
       if (p != None) {
-        Square sq = makesquare(File(file), Rank(rank));
-        placePiece(p, sq);
+        //only place the piece if we are strictly on the board
+        if (file <= 7 && rank >= 0 && rank <= 7) {
+          Square sq = makesquare(File(file), Rank(rank));
+          placePiece(p, sq);
+        }
         file++;
       }
     }

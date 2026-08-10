@@ -170,7 +170,10 @@ private:
   void CheckTime();
   void UpdateUciInfo(int depth, int score, const PVLine &pv);
   bool IsDraw(int ply) const;
-
+  
+  bool isLegalMove(Move move);
+  Move pickLegalMove(Move preferred);
+  
   int history[2][64][64]; //[color][from][to]
   int lmrTable[64][64];
   Move counterMoves[2][64][64];

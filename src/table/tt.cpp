@@ -90,7 +90,7 @@ void TranspositionTable::store(uint64_t key, int depth, int flag, int score,
   }
 
   replace->key = key;
-  replace->depth = static_cast<int8_t>(depth);
+  replace->depth = static_cast<int16_t>(depth);
   replace->flag = static_cast<uint8_t>(flag);
   replace->score = static_cast<int16_t>(score);
   replace->eval = static_cast<int16_t>(eval);

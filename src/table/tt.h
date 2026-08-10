@@ -18,12 +18,12 @@ public:
   uint64_t key; // zobrist key of the position
 
   // 2-byte types
+  int16_t depth; // search depth of entry
   int16_t score; // stored search score
   int16_t eval;  // static evaluation
   Move bestMove; // best move found
 
   // 1-byte types
-  uint8_t depth; // search depth of entry
   uint8_t flag;  // alpha / beta / exact
   uint8_t age;   // for replacement policy
 };

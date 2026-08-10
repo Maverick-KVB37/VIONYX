@@ -94,7 +94,7 @@ public:
     return (knights<c>() | bishops<c>() | rooks<c>() | queens<c>()) != 0ULL;
   }
 
-  template <Color c> inline void makeNullMove();
+  template <Color c> inline bool makeNullMove();
 
   template <Color c> inline void unmakeNullMove();
 
@@ -112,10 +112,12 @@ private:
   Color stm;
   StateInfo *state;
 
-  StateInfo stateStack[1024];
+  static constexpr int MAXGAMEPLIES = 2048;
+
+  StateInfo stateStack[MAXGAMEPLIES];
   uint16_t stateCount;
 
-  uint64_t positionHistory[1024];
+  uint64_t positionHistory[MAXGAMEPLIES];
   int historyCount = 0;
   uint16_t fullMoveCounter;
 
@@ -188,17 +190,38 @@ template <Color c> inline bool Position::isSquareAttacked(Square sq) const {
 }
 
 template <Color c> bool Position::inCheck() const {
-  Square kingSq = getlsb(kings<c>());
+  Bitboard kingBB = kings<c>();
+  if (kingBB == 0ULL) {
+    return false; // If there is no king, it can't be in check
+  }
+
+  Square kingSq = getlsb(kingBB);
   return isSquareAttacked<~c>(kingSq);
 }
 
 template <Color c> Square Position::kingsq() const {
-  if constexpr (c == White)
-    return bsf(kings<White>());
-  return bsf(kings<Black>());
+  Bitboard kingBB;
+  
+  if constexpr (c == White) {
+    kingBB = kings<White>();
+  }
+  else {
+    kingBB = kings<Black>();
+  }
+
+  //protect bsf() from undefined behavior
+  if (kingBB == 0ULL) {
+    return SQ_A1; //safely return SQ_A1 as a dummy square
+  }
+  return bsf(kingBB);
 }
 
 template <Color c> void Position::makemove(Move move) {
+  
+  if (stateCount >= MAXGAMEPLIES - 1 || historyCount >= MAXGAMEPLIES - 1) {
+    return; //tell caller that state stack or history stack is full
+  }
+
   Square from = move.from();
   Square to = move.to();
 
@@ -207,8 +230,6 @@ template <Color c> void Position::makemove(Move move) {
 
   MoveFlag flag = move.flag();
 
-  // setup new state
-  assert(stateCount < 1024);
   StateInfo *newState = &stateStack[stateCount++];
   newState->previous = state;
 
@@ -503,9 +524,9 @@ inline bool Position::isDrawByFiftyMove() const {
   return state->halfMoveClock >= 100;
 }
 
-template <Color c> inline void Position::makeNullMove() {
-  if (stateCount >= 1023)
-    return;
+template <Color c> inline bool Position::makeNullMove() {
+  if (stateCount >= MAXGAMEPLIES - 1)
+    return false; //tells caller that can`t make a null move
 
   StateInfo *newState = &stateStack[stateCount++];
   *newState = *state;
@@ -530,6 +551,7 @@ template <Color c> inline void Position::makeNullMove() {
   toggleSide();
 
   positionHistory[historyCount++] = state->hashKey;
+  return true; //tell caller that a null move successfully made
 }
 
 template <Color c> inline void Position::unmakeNullMove() {

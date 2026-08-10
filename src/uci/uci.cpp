@@ -17,7 +17,17 @@ UCI::UCI() : pos(nullptr), tt() {
   searcher = new Search::Searcher(*pos, tt);
 }
 
+//if GUI quits before the search is finished, need to stop the search and join the Search Thread Before Any Deletion
 UCI::~UCI() {
+  //stops the search and joins the Search Thread Before Any Deletion
+  if(searcher){
+    searcher->stop();
+  }
+  //join the Search Thread Before Any Deletion
+  if(searchThread.joinable()){
+    searchThread.join();
+  }
+  //delete the searcher and position
   delete searcher;
   delete pos;
 }
@@ -66,7 +76,8 @@ void UCI::uciLoop() {
             }
           }
         }
-      } else if (token == "fen") {
+      }
+      else if (token == "fen") {
         std::string fen, part;
         int fenParts = 0;
         while (fenParts < 6 && iss >> part) {
@@ -94,7 +105,10 @@ void UCI::uciLoop() {
       }
 
       std::cout << "info string Position set\n";
-    } else if (command == "go") {
+    }
+    else if (command == "go") {
+      //so instead of think() calls directly in the main thread, we create a new thread to call think()
+      //and also clean any search thread that is running before calling think()
       Search::SearchLimits limits;
       limits.depth = Search::MAX_PLY;
       limits.nodes = UINT64_MAX;
@@ -130,14 +144,31 @@ void UCI::uciLoop() {
         }
       }
 
-      searcher->think(limits);
+      //clean up the previous search thread if it exists
+      if (searchThread.joinable()) {
+        searchThread.join();
+      }
+      
+      //launch the new search in the background
+      searchThread = std::thread([this, limits]() {
+        searcher->think(limits);
+      });
 
-    } else if (command == "stop") {
+    }
+    else if (command == "stop") {
       searcher->stop();
-    } else if (command == "quit") {
+    } 
+    else if (command == "quit") {
+      //stop the search and join the Search Thread Before Any Deletion
       searcher->stop();
+
+      if (searchThread.joinable()) {
+        searchThread.join();
+      }
+
       break;
-    } else if (command == "print") {
+    }
+    else if (command == "print") {
       pos->print();
     }
   }

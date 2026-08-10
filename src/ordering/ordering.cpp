@@ -70,6 +70,16 @@ int MoveOrderer::see(const Position &pos, Move move) {
   Square toSq = move.to();
   PieceType target = piecetype(pos.pieceAt(toSq));
   PieceType attacker = piecetype(pos.pieceAt(fromSq));
+
+  //Handle Enpassant Move
+  if(move.IsEnpassant()){
+    target = Pawn;
+  }
+  
+  //Target Is Nonetype
+  if(target == Nonetype){
+    return 0;
+  }
   Color sideToMove = ~pos.sideToMove();
 
   int gain[64] = {0};

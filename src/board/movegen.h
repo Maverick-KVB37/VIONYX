@@ -117,7 +117,10 @@ private:
   void GenerateCastlingMoves(const Position &pos, MoveList &moves) {
     if constexpr (c == White) {
       if (pos.castling() & WHITE_OO) {
-        if (pos.pieceAt(SQ_F1) == None && pos.pieceAt(SQ_G1) == None &&
+        //verify King and Rook are in place
+        if (pos.pieceAt(SQ_E1) == makepiece(White, King) &&
+            pos.pieceAt(SQ_H1) == makepiece(White, Rook) &&
+            pos.pieceAt(SQ_F1) == None && pos.pieceAt(SQ_G1) == None &&
             !pos.isSquareAttacked<Black>(SQ_E1) &&
             !pos.isSquareAttacked<Black>(SQ_F1) &&
             !pos.isSquareAttacked<Black>(SQ_G1)) {
@@ -125,7 +128,10 @@ private:
         }
       }
       if (pos.castling() & WHITE_OOO) {
-        if (pos.pieceAt(SQ_D1) == None && pos.pieceAt(SQ_C1) == None &&
+        //verify King and Rook are in place
+        if (pos.pieceAt(SQ_E1) == makepiece(White, King) &&
+            pos.pieceAt(SQ_A1) == makepiece(White, Rook) &&
+            pos.pieceAt(SQ_D1) == None && pos.pieceAt(SQ_C1) == None &&
             pos.pieceAt(SQ_B1) == None && !pos.isSquareAttacked<Black>(SQ_E1) &&
             !pos.isSquareAttacked<Black>(SQ_D1) &&
             !pos.isSquareAttacked<Black>(SQ_C1)) {
@@ -134,7 +140,10 @@ private:
       }
     } else {
       if (pos.castling() & BLACK_OO) {
-        if (pos.pieceAt(SQ_F8) == None && pos.pieceAt(SQ_G8) == None &&
+        //verify King and Rook are in place
+        if (pos.pieceAt(SQ_E8) == makepiece(Black, King) &&
+            pos.pieceAt(SQ_H8) == makepiece(Black, Rook) &&
+            pos.pieceAt(SQ_F8) == None && pos.pieceAt(SQ_G8) == None &&
             !pos.isSquareAttacked<White>(SQ_E8) &&
             !pos.isSquareAttacked<White>(SQ_F8) &&
             !pos.isSquareAttacked<White>(SQ_G8)) {
@@ -142,7 +151,10 @@ private:
         }
       }
       if (pos.castling() & BLACK_OOO) {
-        if (pos.pieceAt(SQ_D8) == None && pos.pieceAt(SQ_C8) == None &&
+        //verify King and Rook are in place
+        if (pos.pieceAt(SQ_E8) == makepiece(Black, King) &&
+            pos.pieceAt(SQ_A8) == makepiece(Black, Rook) &&
+            pos.pieceAt(SQ_D8) == None && pos.pieceAt(SQ_C8) == None &&
             pos.pieceAt(SQ_B8) == None && !pos.isSquareAttacked<White>(SQ_E8) &&
             !pos.isSquareAttacked<White>(SQ_D8) &&
             !pos.isSquareAttacked<White>(SQ_C8)) {

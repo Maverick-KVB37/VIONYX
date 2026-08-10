@@ -28,32 +28,31 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 </td>
 <td>
 
-| Metric | Value |
-|:--|:--|
-| **Score vs SF2500** | **208W – 111L – 36D** |
-| **Win Rate** | **63.7%** |
-| **Elo Difference** | **+97.4 ± 35.6** |
-| **LOS** | **100.0%** |
-| **SPRT Result** |  **H1 Accepted** |
+## Benchmark: Critical Bug Fixes & Stability Patch (ASTROVE 2.0 vs 1.0)
 
-</td>
-</tr>
-</table>
+| Metric | Value |
+|:---|:---|
+| **Matchup** | **ASTROVE 2.0 (Fixed) vs ASTROVE 1.0 (Old)** |
+| **Score** | **62W – 24L – 114D** (200 Games) |
+| **Win Rate** | **59.5%** |
+| **Elo Gain** | **+66.8 ± 31.4** |
+| **LOS** | **100.0%** |
+| **Draw Ratio** | **57.0%** |
 
 ---
 
-## Benchmark: C++ & MoveGen Speed Optimizations
-
-355 games · Time Control `10+0.1` · Opening Book `noob_3moves.epd` · SPRT `elo0=0 elo1=10 α=0.05 β=0.05`
+### Match Details
+* **Time Control:** `8+0.08` (8s + 80ms increment)
+* **Opening Suite:** `UHO_2024_8mvs_+090_+099.epd` (UHO 2024)
+* **Concurrency:** 8 Threads
 
 ```text
-Score of Astrove vs SF2500: 208 - 111 - 36  [0.637] 355
-...      Astrove playing White: 97 - 59 - 21  [0.607] 177
-...      Astrove playing Black: 111 - 52 - 15  [0.666] 178
-...      White vs Black: 149 - 170 - 36  [0.470] 355
-Elo difference: 97.4 +/- 35.6, LOS: 100.0 %, DrawRatio: 10.1 %
-SPRT: llr 2.97 (101.0%), lbound -2.94, ubound 2.94 - H1 was accepted
-```
+Score of ASTROVE_OLD vs ASTROVE_NEW: 24 - 62 - 114  [0.405] 200
+...      ASTROVE_OLD playing White: 18 - 18 - 64  [0.500] 100
+...      ASTROVE_OLD playing Black: 6 - 44 - 50  [0.310] 100
+...      White vs Black: 62 - 24 - 114  [0.595] 200
+Elo difference: -66.8 +/- 31.4, LOS: 0.0 %, DrawRatio: 57.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
 
 <details>
 <summary><b>Detailed Game Termination Statistics</b></summary>

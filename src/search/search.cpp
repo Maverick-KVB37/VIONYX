@@ -28,6 +28,48 @@ void Searcher::ageHistory() {
         history[c][f][t] /= 2;
 }
 
+bool Searcher::isLegalMove(Move move) {
+  if (move == NO_MOVE || move.from() == move.to() || move.from() >= 64 || move.to() >= 64) {
+    return false;
+  }
+  
+  bool legal = false;
+  if (pos.sideToMove() == White) {
+    pos.makemove<White>(move);
+    legal = !pos.inCheck<White>();
+    pos.unmakemove<White>(move);
+  } else {
+    pos.makemove<Black>(move);
+    legal = !pos.inCheck<Black>();
+    pos.unmakemove<Black>(move);
+  }
+  return legal;
+}
+
+Move Searcher::pickLegalMove(Move preferred) {
+  //if the preferred move from the PV is legal then use it immediately
+  if (isLegalMove(preferred)) {
+    return preferred;
+  }
+  
+  //otherwise generate all moves and find the first strictly legal one
+  MoveList moves;
+  if (pos.sideToMove() == White) {
+    gen.GenerateAllMoves<White>(pos, moves);
+  } else {
+    gen.GenerateAllMoves<Black>(pos, moves);
+  }
+  
+  for (const Move &move : moves) {
+    if (isLegalMove(move)) {
+      return move;
+    }
+  }
+  
+  //checkmate or stalemate no legal moves exist
+  return NO_MOVE;
+}
+
 Move Searcher::think(const SearchLimits &limits) {
   this->limits = limits;
   this->stopFlag = false;
@@ -50,51 +92,9 @@ Move Searcher::think(const SearchLimits &limits) {
 
   IterativeDeepening();
 
-  Move bestMove = NO_MOVE;
-  if (info.pv.length > 0) {
-    bestMove = info.pv.moves[0];
-  }
-
-  bool moveInvalid = (bestMove.from() == bestMove.to()) ||
-                     (bestMove.from() >= 64) || (bestMove.to() >= 64);
-
-  if (info.pv.length == 0 || moveInvalid) {
-
-    MoveList moves;
-    if (pos.sideToMove() == White) {
-      gen.GenerateAllMoves<White>(pos, moves);
-
-      for (const Move &move : moves) {
-        pos.makemove<White>(move);
-        bool legal = !pos.inCheck<White>();
-        pos.unmakemove<White>(move);
-
-        if (legal) {
-          return move;
-        }
-      }
-    } else {
-      gen.GenerateAllMoves<Black>(pos, moves);
-
-      for (const Move &move : moves) {
-        pos.makemove<Black>(move);
-        bool legal = !pos.inCheck<Black>();
-        pos.unmakemove<Black>(move);
-
-        if (legal) {
-          return move;
-        }
-      }
-    }
-
-    if (!moves.empty()) {
-      return moves[0];
-    }
-
-    return NO_MOVE;
-  }
-
-  return bestMove;
+  //pick the absolute best legal move from the PV safely falling back if the PV is corrupted
+  Move bestMove = (info.pv.length > 0) ? info.pv.moves[0] : NO_MOVE;
+  return pickLegalMove(bestMove);
 }
 
 void Searcher::IterativeDeepening() {
@@ -129,10 +129,10 @@ void Searcher::IterativeDeepening() {
         score = pvs<Black, true>(depth, 0, alpha, beta, false, NO_MOVE);
       }
 
-      if (depth > 1) {
-        CheckTime();
-        if (stopFlag)
-          break;
+      //check time and break immediately if aborted, regardless of depth
+      CheckTime();
+      if (stopFlag) {
+        break;
       }
 
       /*
@@ -175,10 +175,13 @@ void Searcher::IterativeDeepening() {
     UpdateUciInfo(depth, score, info.pv);
   }
 
-  if (bestMoveFound.from() != bestMoveFound.to()) {
-    std::cout << "bestmove " << bestMoveFound.ToUciString() << std::endl;
-  } else {
-    std::cout << "bestmove 0000" << std::endl;
+  Move toPlay = pickLegalMove(bestMoveFound);
+  
+  if (toPlay != NO_MOVE) {
+    std::cout << "bestmove " << toPlay.ToUciString() << std::endl;
+  }
+  else {
+    std::cout << "bestmove 0000" << std::endl; //safely outputs 0000 on mate/stalemate
   }
 }
 
@@ -203,6 +206,7 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
 
   if ((nodes & 2047) == 0)
     CheckTime();
+
   if (stopFlag)
     return 0;
 
@@ -277,26 +281,27 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
 
     int nullDepth = std::max(0, depth - R - 1);
 
-    pos.makeNullMove<c>();
+    if(pos.makeNullMove<c>()){
 
-    int score = -pvs<~c, false>(nullDepth, ply + 1, -beta, -beta + 1, !cutNode,
-                                NO_MOVE);
+      int score = -pvs<~c, false>(nullDepth, ply + 1, -beta, -beta + 1, !cutNode,
+                                  NO_MOVE);
 
-    pos.unmakeNullMove<c>();
-    if (stopFlag)
-      return 0;
-    if (score >= beta) {
-      if (score > MATE_SCORE - MAX_PLY) {
-        score = beta;
-      }
-      // Verification search at high depth to prevent null move zugzwang
-      if (depth >= 12) {
-        int verScore = pvs<c, false>(nullDepth, ply + 1, beta - 1, beta, false,
-                                     previousMove);
-        if (verScore >= beta)
+      pos.unmakeNullMove<c>();
+      if (stopFlag)
+        return 0;
+      if (score >= beta) {
+        if (score > MATE_SCORE - MAX_PLY) {
+          score = beta;
+        }
+        // Verification search at high depth to prevent null move zugzwang
+        if (depth >= 12) {
+          int verScore = pvs<c, false>(nullDepth, ply + 1, beta - 1, beta, false,
+                                      previousMove);
+          if (verScore >= beta)
+            return score;
+        } else {
           return score;
-      } else {
-        return score;
+        }
       }
     }
   }
@@ -481,7 +486,9 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
   int flag = (bestScore >= beta)           ? HASH_FLAG_BETA
              : (bestScore > originalAlpha) ? HASH_FLAG_EXACT
                                            : HASH_FLAG_ALPHA;
-  tt.store(pos.hash(), depth, flag, bestScore, 0, ply, bestMove);
+  if(!stopFlag){
+    tt.store(pos.hash(), depth, flag, bestScore, 0, ply, bestMove);
+  }
 
   return bestScore;
 }
@@ -610,8 +617,13 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 }
 
 void Searcher::CheckTime() {
-  tm.Check();
+  //enforce UCI node limit
+  if (nodes >= limits.nodes) {
+    stopFlag = true;
+    return; //can return immediately if we hit the limit
+  }
 
+  tm.Check();
   if (tm.StopFlag()) {
     stopFlag = true;
   }
