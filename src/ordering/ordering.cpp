@@ -144,7 +144,7 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
     searched first.                             |
     */
     if (move == ttMove) {
-      scores[i] = SCORE_TT_MOVE;
+      moves.scores[i] = SCORE_TT_MOVE;
     }
 
     /*
@@ -161,9 +161,9 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
         victim = Pawn;
       }
       if (victim != Nonetype) {
-        scores[i] = SCORE_CAPTURE_BASE + mvv_lva[attacker][victim];
+        moves.scores[i] = SCORE_CAPTURE_BASE + mvv_lva[attacker][victim];
       } else {
-        scores[i] = SCORE_CAPTURE_BASE;
+        moves.scores[i] = SCORE_CAPTURE_BASE;
       }
     }
 
@@ -172,7 +172,7 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
     promotions,      | | so they are scored highly just below good captures. |
     */
     else if (move.IsPromotion()) {
-      scores[i] = SCORE_CAPTURE_BASE + 600;
+      moves.scores[i] = SCORE_CAPTURE_BASE + 600;
     }
 
     /*
@@ -180,13 +180,13 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
     other branches     | | of the search tree. |
     */
     else if (move == killers[0]) {
-      scores[i] = SCORE_KILLER_1;
+      moves.scores[i] = SCORE_KILLER_1;
     } else if (move == killers[1]) {
-      scores[i] = SCORE_KILLER_2;
+      moves.scores[i] = SCORE_KILLER_2;
     }
 
     else if (move == counterMove) {
-      scores[i] = 17000;
+      moves.scores[i] = 17000;
     }
 
     /*
@@ -200,25 +200,24 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
       // Ensure history score does not exceed killer moves
       if (hscore > 16000)
         hscore = 16000;
-      scores[i] = hscore;
+      moves.scores[i] = hscore;
     }
   }
 
-  for (int i = 0; i < moves.size(); ++i) {
-    int bestIdx = i;
-    for (int j = i + 1; j < moves.size(); ++j) {
-      if (scores[j] > scores[bestIdx]) {
-        bestIdx = j;
-      }
-    }
-    if (bestIdx != i) {
-      std::swap(moves[i], moves[bestIdx]);
-      std::swap(scores[i], scores[bestIdx]);
-    }
-  }
+
 }
 
 Move MoveOrderer::PickNextMove(MoveList &moves, int startIndex) {
+  int bestIdx = startIndex;
+  for (int j = startIndex + 1; j < moves.size(); ++j) {
+    if (moves.scores[j] > moves.scores[bestIdx]) {
+      bestIdx = j;
+    }
+  }
+  if (bestIdx != startIndex) {
+    std::swap(moves[startIndex], moves[bestIdx]);
+    std::swap(moves.scores[startIndex], moves.scores[bestIdx]);
+  }
   return moves[startIndex];
 }
 
@@ -227,22 +226,9 @@ void MoveOrderer::ScoreCaptures(const Position &pos, MoveList &captures,
   for (int i = 0; i < captures.size(); i++) {
     const Move &move = captures[i];
     if (move == ttMove) {
-      scores[i] = 1000000;
+      captures.scores[i] = 1000000;
     } else {
-      scores[i] = see(pos, move);
-    }
-  }
-
-  for (int i = 0; i < captures.size(); ++i) {
-    int bestIdx = i;
-    for (int j = i + 1; j < captures.size(); ++j) {
-      if (scores[j] > scores[bestIdx]) {
-        bestIdx = j;
-      }
-    }
-    if (bestIdx != i) {
-      std::swap(captures[i], captures[bestIdx]);
-      std::swap(scores[i], scores[bestIdx]);
+      captures.scores[i] = see(pos, move);
     }
   }
 }

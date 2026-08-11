@@ -23,7 +23,7 @@ public:
   // Static Exchange Evaluation to order captures
   int see(const Position &pos, Move move);
 
-  int scores[256];
+
 
 private:
   static constexpr int SEEVALUE[6] = {100, 325, 335, 500, 975, 20000};

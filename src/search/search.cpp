@@ -598,7 +598,7 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
 
       if (score >= beta) {
         tt.store(pos.hash(), 0, HASH_FLAG_BETA, score, 0, ply, bestMove);
-        return beta;
+        return score;
       }
 
       if (score > alpha) {
@@ -616,7 +616,7 @@ template <Color c> int Searcher::quiescence(int alpha, int beta, int ply) {
   int flag = (bestScore > originalAlpha) ? HASH_FLAG_EXACT : HASH_FLAG_ALPHA;
   tt.store(pos.hash(), 0, flag, bestScore, 0, ply, bestMove);
 
-  return alpha;
+  return bestScore;
 }
 
 void Searcher::CheckTime() {

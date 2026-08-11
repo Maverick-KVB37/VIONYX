@@ -111,6 +111,10 @@ public:
 
   void reserve(int) {} // no-op for compat
 
+  // Scores for move ordering — stored here so each ply has its own scores
+  // and deeper plies can't corrupt the parent's ordering.
+  int scores[MAX_MOVES];
+
 private:
   Move moves[MAX_MOVES];
   int count;

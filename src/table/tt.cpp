@@ -76,17 +76,37 @@ void TranspositionTable::store(uint64_t key, int depth, int flag, int score,
     score -= ply;
 
   /*
-  | Replacement Scheme | | Prefers to replace entries that are older or searched
-  to a shallower depth. |
+  | Replacement Scheme |
+  | Prefers to replace entries that are older or searched to a shallower depth
   */
   TTEntry *replace = &bucket[0];
-  for (int i = 0; i < MAX_BUCKETS; ++i) {
+
+  //check if the key is already in the bucket, always update an existing key
+  for(int i = 0; i < MAX_BUCKETS; ++i){
     if (bucket[i].key == key) {
       replace = &bucket[i];
       break;
     }
-    if (bucket[i].depth < replace->depth || bucket[i].age != currentAge)
-      replace = &bucket[i];
+  }
+
+  //if the key was not found find the worst (oldest + shallowest) entry to overwrite
+  if(replace->key != key){
+    //lambda or helper to calculate entry quality score
+    auto getScore = [this](const TTEntry &entry) {
+      int ageBonus = (entry.age == currentAge) ? 4 : 0;
+      return static_cast<int>(entry.depth) * 8 + ageBonus;
+    };
+
+    int lowestScore = getScore(bucket[0]);
+    replace = &bucket[0];
+
+    for(int i = 1; i < MAX_BUCKETS; ++i){
+      int score = getScore(bucket[i]);
+      if(score<lowestScore){
+        lowestScore=score;
+        replace = &bucket[i];
+      }
+    }
   }
 
   replace->key = key;
