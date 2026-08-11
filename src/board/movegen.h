@@ -19,8 +19,9 @@ public:
   }
 
   /*
-  | Quiescence Moves | | Generates only capture and promotion moves, which are
-  used primarily in     | | the quiescence search to resolve noisy positions. |
+  | Quiescence Moves                                                            | 
+  | Generates only capture and promotion moves, which are used primarily in     | 
+  | the quiescence search to resolve noisy positions.                           |
   */
   template <Color c>
   void GenerateCaptures(const Position &pos, MoveList &moves) {
@@ -180,8 +181,9 @@ private:
       Square to = Square(from + forward);
 
       /*
-      | Single Pawn Push | | Generates moves for a pawn advancing one square
-      forward. Handles promotions | | if the pawn reaches the promotion rank. |
+      | Single Pawn Push                                                            | 
+      | Generates moves for a pawn advancing one square forward. Handles promotions | 
+      | if the pawn reaches the promotion rank.                                     |
       */
       if (empty & (1ULL << to)) {
         if (fromrank == promotionrank) {
@@ -192,8 +194,9 @@ private:
         } else {
           moves.Add(Move(from, to, QuietMove));
           /*
-          | Double Pawn Push | | Generates a double push if the pawn is on its
-          starting rank and the         | | squares in front are clear. |
+          | Double Pawn Push                                                            | 
+          | Generates a double push if the pawn is on its starting rank and the         | 
+          | squares in front are clear.                                                 |
           */
           if (fromrank == doublepawnpush) {
             Square to2 = Square(from + 2 * forward);
@@ -205,8 +208,8 @@ private:
       }
 
       /*
-      | Pawn Captures | | Generates all valid pawn captures, including
-      promotions via capture.        |
+      | Pawn Captures                                                         | 
+      | Generates all valid pawn captures, including promotions via capture.  |
       */
       Bitboard attacks = Attacks::GetPawnAttacks(c, from) & enemy;
       while (attacks) {
@@ -222,8 +225,8 @@ private:
       }
 
       /*
-      | En Passant Captures | | Generates en passant captures if available in
-      the current position.         |
+      | En Passant Captures                                                   | 
+      | Generates en passant captures if available in the current position.   |
       */
       Square epSq = pos.epSquare();
       if (epSq != NO_SQ) {
@@ -303,9 +306,9 @@ private:
       int fromrank = from / 8;
 
       /*
-      | Promotion Pushes | | Treated as captures because they significantly
-      alter the material balance   | | and must be evaluated during quiescence
-      search.                             |
+      | Promotion Pushes                                                            | 
+      | Treated as captures because they significantly alter the material balance   | 
+      | and must be evaluated during quiescence search.                             |
       */
       if (fromrank == promotionrank) {
         Square to = Square(from + forward);

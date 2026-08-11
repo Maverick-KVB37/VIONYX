@@ -13,8 +13,9 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
   movesToGo = limits.movestogo;
 
   /*
-  | Fixed Time Per Move | | If the engine is given a fixed time to search for a
-  move, it will           | | search until the exact time is elapsed. |
+  | Fixed Time Per Move                                                 | 
+  | If the engine is given a fixed time to search for a move, it will   | 
+  | search until the exact time is elapsed.                             |
   */
   if (limits.movetime > 0) {
     timeForMove = limits.movetime;
@@ -23,8 +24,9 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
   }
 
   /*
-  | Infinite Time | | If the search is set to infinite, no time constraints are
-  applied,          | | and the engine will search until explicitly stopped. |
+  | Infinite Time                                                         | 
+  | If the search is set to infinite, no time constraints are applied,    | 
+  | and the engine will search until explicitly stopped.                  |
   */
   if (limits.infinite) {
     timeForMove = InfiniteTime;
@@ -32,9 +34,9 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
   }
 
   /*
-  | Fixed Depth (No Time Control) | | If the search specifies a fixed depth
-  without any time parameters,          | | the engine will use infinite time to
-  complete the requested depth.          |
+  | Fixed Depth (No Time Control)                                               | 
+  | If the search specifies a fixed depth without any time parameters,          | 
+  | the engine will use infinite time to complete the requested depth.          |
   */
   if (limits.depth < 128 && timeLeft <= 0 && increment == 0 &&
       !limits.movetime && !limits.infinite) {
@@ -43,9 +45,9 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
   }
 
   /*
-  | Dynamic Time Control | | Calculates the time to allocate for the current
-  move based on time left,    | | increment, and estimated remaining moves in
-  the game.                       |
+  | Dynamic Time Control                                                        | 
+  | Calculates the time to allocate for the current move based on time left,    | 
+  | increment, and estimated remaining moves in the game.                       |
   */
   if (timeLeft > 0) {
 
@@ -69,8 +71,9 @@ void TimeManager::start(const Search::SearchLimits &limits, Color sideToMove,
     }
 
     /*
-    | Panic Modes | | If time left drops critically low, we severely constrain
-    the time           | | allocated per move to avoid losing on time. |
+    | Panic Modes                                                           | 
+    | If time left drops critically low, we severely constrain the time     | 
+    | allocated per move to avoid losing on time.                           |
     */
     if (timeLeft < 10000) {
       timeForMove = std::min(timeForMove, timeLeft / 10);

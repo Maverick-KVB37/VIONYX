@@ -76,8 +76,8 @@ void TranspositionTable::store(uint64_t key, int depth, int flag, int score,
     score -= ply;
 
   /*
-  | Replacement Scheme |
-  | Prefers to replace entries that are older or searched to a shallower depth
+  | Replacement Scheme                                                         |
+  | Prefers to replace entries that are older or searched to a shallower depth |
   */
   TTEntry *replace = &bucket[0];
 

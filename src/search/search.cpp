@@ -109,9 +109,9 @@ void Searcher::IterativeDeepening() {
       break;
 
     /*
-    | Aspiration Window | | We search with a narrow window around the previous
-    score. If the score      | | falls outside this window, we re-search with a
-    wider window.                |
+    | Aspiration Window                                                           | 
+    | We search with a narrow window around the previous score. If the score      | 
+    | falls outside this window, we re-search with a wider window.                |
     */
     int alpha = -INFINITE;
     int beta = INFINITE;
@@ -137,9 +137,9 @@ void Searcher::IterativeDeepening() {
       }
 
       /*
-      | Exponential Widening on Fail-Low | | If the search fails low, we widen
-      the lower bound of our window           | | exponentially and search
-      again.                                           |
+      | Exponential Widening on Fail-Low                                     | 
+      | If the search fails low, we widen the lower bound of our window      | 
+      | exponentially and search again.                                      |
       */
       if (score <= alpha) {
         beta = (alpha + beta) / 2;
@@ -148,9 +148,9 @@ void Searcher::IterativeDeepening() {
         continue;
       }
       /*
-      | Exponential Widening on Fail-High | | If the search fails high, we widen
-      the upper bound of our window          | | exponentially and search again.
-      |
+      | Exponential Widening on Fail-High                                   | 
+      | If the search fails high, we widen the upper bound of our window    | 
+      | exponentially and search again.                                     |
       */
       if (score >= beta) {
         beta = std::min(INFINITE, beta + delta);
@@ -212,9 +212,9 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     return 0;
 
   /*
-  | TT Cutoff  If we have already seen this position before and the |
-  | stored score is useful, we can use the previously stored score to avoid | |
-  searching the same position again.                                          |
+  | TT Cutoff  If we have already seen this position before and the             |
+  | stored score is useful, we can use the previously stored score to avoid     | 
+  | searching the same position again.                                          |
   */
   int ttScore = 0;
   Move ttMove = NO_MOVE;
@@ -343,8 +343,9 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     Move move = orderer.PickNextMove(moves, i);
 
     /*
-    | Late Move Pruning (LMP) | | We skip searching quiet moves that are ordered
-    very late, as they are     | | highly unlikely to improve the position. |
+    | Late Move Pruning (LMP)                                                   | 
+    | We skip searching quiet moves that are ordered very late, as they are     | 
+    | highly unlikely to improve the position.                                  |
     */
     if (!PvNode && !inCheck && depth < 8 && !move.IsCapture() &&
         !move.IsPromotion()) {
@@ -381,9 +382,9 @@ int Searcher::pvs(int depth, int ply, int alpha, int beta, bool cutNode,
     bool needfullsearch = true;
 
     /*
-    | Late Move Reductions (LMR) | | Moves ordered later in the move list are
-    less likely to be good, so we    | | search them with reduced depth to save
-    time.                              |
+    | Late Move Reductions (LMR) | 
+    | Moves ordered later in the move list are less likely to be good, so we    | 
+    | search them with reduced depth to save time.                              |
     */
     if (depth >= 3 && legalMoves > 3 && !inCheck && !move.IsCapture() &&
         !move.IsPromotion() && !givesCheck) {

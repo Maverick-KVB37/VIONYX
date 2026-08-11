@@ -126,8 +126,9 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
                              const Move counterMoves[2][64][64]) {
 
   /*
-  | Counter Move Heuristic | | Checks if the previous move has a stored counter
-  move that might be strong  | | in this position. |
+  | Counter Move Heuristic                                                      | 
+  | Checks if the previous move has a stored counter move that might be strong  | 
+  | in this position.                                                           |
   */
   Move counterMove = NO_MOVE;
   if (prevMove != NO_MOVE) {
@@ -139,18 +140,18 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
     const Move &move = moves[i];
 
     /*
-    | Transposition Table Move | | The move retrieved from the TT is the most
-    likely to be the best move.      | | It gets the highest score to be
-    searched first.                             |
+    | Transposition Table Move                                                    | 
+    | The move retrieved from the TT is the most likely to be the best move.      | 
+    | It gets the highest score to be searched first.                             |
     */
     if (move == ttMove) {
       moves.scores[i] = SCORE_TT_MOVE;
     }
 
     /*
-    | Captures (MVV-LVA) | | Most Valuable Victim - Least Valuable Attacker.
-    Good captures are scored    | | highly. En passant captures are also handled
-    here.                          |
+    | Captures (MVV-LVA)                                                          | 
+    | Most Valuable Victim - Least Valuable Attacker. Good captures are scored    | 
+    | highly. En passant captures are also handled here.                          |
     */
     else if (move.IsCapture()) {
       PieceType attacker = piecetype(pos.pieceAt(move.from()));
@@ -168,16 +169,18 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
     }
 
     /*
-    | Promotions | | Non-capture promotions are very valuable, especially Queen
-    promotions,      | | so they are scored highly just below good captures. |
+    | Promotions                                                                  | 
+    | Non-capture promotions are very valuable, especially Queen promotions,      | 
+    | so they are scored highly just below good captures.                         |
     */
     else if (move.IsPromotion()) {
       moves.scores[i] = SCORE_CAPTURE_BASE + 600;
     }
 
     /*
-    | Killer Moves | | Quiet moves that caused a beta cutoff at the same ply in
-    other branches     | | of the search tree. |
+    | Killer Moves                                                                | 
+    | Quiet moves that caused a beta cutoff at the same ply in other branches     | 
+    | of the search tree.                                                         |
     */
     else if (move == killers[0]) {
       moves.scores[i] = SCORE_KILLER_1;
@@ -190,9 +193,9 @@ void MoveOrderer::ScoreMoves(const Position &pos, MoveList &moves, Move ttMove,
     }
 
     /*
-    | History Heuristic | | Orders quiet moves based on how often they have
-    caused beta cutoffs in      | | the past, helping us find good quiet moves
-    faster.                          |
+    | History Heuristic                                                          | 
+    | Orders quiet moves based on how often they havecaused beta cutoffs in      | 
+    | the past, helping us find good quiet movesfaster.                          |
     */
     else {
       int side = pos.sideToMove();
