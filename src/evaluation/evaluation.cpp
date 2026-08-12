@@ -79,18 +79,19 @@ void Evaluator::EvaluatePawns(const Position &pos) {
     }
 
     // Passed pawn
-    if ((MASKPASSED[White][sq] & blackPawns) == 0) {
+    bool isPassed = (MASKPASSED[White][sq] & blackPawns) == 0;
+    if(isPassed){
       evalData.add(PASSED_PAWN_BONUS[r]);
     }
 
     /*
-    | Backward Pawn | | 1. Not a passed pawn (cannot safely advance) | | 2. No
-    friendly pawns on adjacent files behind it (cannot be defended)       | | 3.
-    Square in front is attacked by an enemy pawn (long-term weakness)        |
+    | Backward Pawn                                                            | 
+    | Not a passed pawn (cannot safely advance)                                | 
+    | No friendly pawns on adjacent files behind it (cannot be defended)       | 
+    | Square in front is attacked by an enemy pawn (long-term weakness)        |
     */
 
-    bool isPassed = (MASKPASSED[White][sq] & blackPawns) == 0;
-    if (!isPassed) {
+    if(!isPassed){
       Bitboard ranksBehind = (1ULL << sq) - 1; // all squares with index < sq
       Bitboard friendsBehind = whitePawns & ADJACENT_FILES[f] & ranksBehind;
 
@@ -123,11 +124,11 @@ void Evaluator::EvaluatePawns(const Position &pos) {
     }
 
     // Passed pawn
-    if ((MASKPASSED[Black][sq] & whitePawns) == 0) {
+    bool isPassed = (MASKPASSED[Black][sq] & whitePawns) == 0;
+    if(isPassed){
       evalData.subtract(PASSED_PAWN_BONUS[relative_rank]);
     }
 
-    bool isPassed = (MASKPASSED[Black][sq] & whitePawns) == 0;
     if (!isPassed) {
       Bitboard ranksAhead =
           ~((1ULL << (sq + 1)) - 1); // all squares with index > sq
@@ -152,71 +153,91 @@ void Evaluator::EvaluatePawns(const Position &pos) {
 void Evaluator::EvaluateMobility(const Position &pos) {
   Bitboard occupancy = pos.occupancy();
 
-  Bitboard blackPawnAtt = 0ULL;
-  Bitboard bp = pos.pawns<Black>();
-  while (bp) {
-    Square sq = poplsb(bp);
-    blackPawnAtt |= Attacks::GetPawnAttacks(Black, sq);
-  }
+  //Pawn Mobility IS EVALUATED IN PAWN STRUCTURE EVALUATION, SO ONLY NEED TO EVALUATE KNIGHTS, BISHOPS, AND ROOKS
+  Bitboard blackPawns =   pos.pawns<Black>();
+  Bitboard blackPawnAtt = ((blackPawns & ~MASKFILE[FILE_H]) >> 7) | ((blackPawns & ~MASKFILE[FILE_A]) >> 9);
 
-  Bitboard whitePawnAtt = 0ULL;
-  Bitboard wp = pos.pawns<White>();
-  while (wp) {
-    Square sq = poplsb(wp);
-    whitePawnAtt |= Attacks::GetPawnAttacks(White, sq);
-  }
+  Bitboard whitePawns =   pos.pawns<White>();
+  Bitboard whitePawnAtt = ((whitePawns & ~MASKFILE[FILE_A]) << 7) | ((whitePawns & ~MASKFILE[FILE_H]) << 9);
 
   Bitboard whiteSafe = ~pos.occupancy(White) & ~blackPawnAtt;
   Bitboard blackSafe = ~pos.occupancy(Black) & ~whitePawnAtt;
 
-  // White mobility
-  Bitboard knights = pos.knights<White>();
-  while (knights) {
-    Square sq = poplsb(knights);
+  // WHITE KNIGHT MOBILITY
+  Bitboard whiteknights = pos.knights<White>();
+  while (whiteknights) {
+    Square sq = poplsb(whiteknights);
 
     int count = popcount(Attacks::GetKnightAttacks(sq) & whiteSafe);
     evalData.add(MobilityBonus_Knight[count]);
   }
 
-  Bitboard bishops = pos.bishops<White>();
-  while (bishops) {
-    Square sq = poplsb(bishops);
+  //WHITE BISHOPS MOBILITY
+  Bitboard whitebishops = pos.bishops<White>();
+  while (whitebishops) {
+    Square sq = poplsb(whitebishops);
 
     int count = popcount(Attacks::GetBishopAttacks(sq, occupancy) & whiteSafe);
     evalData.add(MobilityBonus_Bishop[std::min(count, 13)]);
   }
 
-  Bitboard rooks = pos.rooks<White>();
-  while (rooks) {
-    Square sq = poplsb(rooks);
+  //WHITE ROOKS MOBILITY
+  Bitboard whiterooks = pos.rooks<White>();
+  while (whiterooks) {
+    Square sq = poplsb(whiterooks);
 
     int count = popcount(Attacks::GetRookAttacks(sq, occupancy) & whiteSafe);
     evalData.add(MobilityBonus_Rook[std::min(count, 14)]);
   }
 
-  // black
-  knights = pos.knights<Black>();
-  while (knights) {
-    Square sq = poplsb(knights);
+  //WHITE QUEEN MOBILITY
+  Bitboard whiteQueens = pos.queens<White>();
+  while (whiteQueens) {
+    Square sq = poplsb(whiteQueens);
+    
+    // A queen's attacks are the bitwise OR of rook and bishop attacks
+    Bitboard attacks = Attacks::GetBishopAttacks(sq, occupancy) | Attacks::GetRookAttacks(sq, occupancy);
+    int count = popcount(attacks & whiteSafe);
+    
+    // Max queen mobility is 27 squares
+    evalData.add(MobilityBonus_Queen[std::min(count, 27)]);
+  }
+
+  // BLACK KNIGHT MOBILITY
+  Bitboard blackknights = pos.knights<Black>();
+  while (blackknights) {
+    Square sq = poplsb(blackknights);
 
     int count = popcount(Attacks::GetKnightAttacks(sq) & blackSafe);
     evalData.subtract(MobilityBonus_Knight[count]);
   }
 
-  bishops = pos.bishops<Black>();
-  while (bishops) {
-    Square sq = poplsb(bishops);
+  // BLACK BISHOPS MOBILITY
+  Bitboard blackbishops = pos.bishops<Black>();
+  while (blackbishops) {
+    Square sq = poplsb(blackbishops);
 
     int count = popcount(Attacks::GetBishopAttacks(sq, occupancy) & blackSafe);
     evalData.subtract(MobilityBonus_Bishop[std::min(count, 13)]);
   }
 
-  rooks = pos.rooks<Black>();
-  while (rooks) {
-    Square sq = poplsb(rooks);
+  // BLACK ROOKS MOBILITY
+  Bitboard blackrooks = pos.rooks<Black>();
+  while (blackrooks) {
+    Square sq = poplsb(blackrooks);
 
     int count = popcount(Attacks::GetRookAttacks(sq, occupancy) & blackSafe);
     evalData.subtract(MobilityBonus_Rook[std::min(count, 14)]);
+  }
+
+  // BLACK QUEEN MOBILITY
+  Bitboard blackQueens = pos.queens<Black>();
+  while (blackQueens) {
+    Square sq = poplsb(blackQueens);
+    
+    Bitboard attacks = Attacks::GetBishopAttacks(sq, occupancy) | Attacks::GetRookAttacks(sq, occupancy);
+    int count = popcount(attacks & blackSafe);
+    evalData.subtract(MobilityBonus_Queen[std::min(count, 27)]);
   }
 }
 

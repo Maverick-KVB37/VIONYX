@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/C%2B%2B-17-blue?style=for-the-badge&logo=cplusplus&logoColor=white" alt="C++17"/>
   <img src="https://img.shields.io/badge/UCI-Compatible-green?style=for-the-badge" alt="UCI"/>
-  <img src="https://img.shields.io/badge/Elo-~2750-orange?style=for-the-badge" alt="Elo"/>
+  <img src="https://img.shields.io/badge/Elo-~2790-orange?style=for-the-badge" alt="Elo"/>
   <img src="https://img.shields.io/badge/License-MIT-purple?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -21,7 +21,7 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 ### Estimated Rating
 
-# **~2750 Elo**
+# **~2790 Elo**
 
 *Measured via SPRT against ASTROVE 2700*
 
@@ -29,12 +29,12 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 
 | Metric | Value |
 |:---|:---|
-| **Matchup** | **ASTROVE 2.0 (Fixed) vs ASTROVE 1.0 (Old)** |
-| **Score** | **126W – 71L – 203D** (400 Games) |
-| **Win Rate** | **56.9%** |
-| **Elo Gain** | **+48.1 ± 23.9** |
+| **Matchup** | **ASTROVE 3.0 (Fixed) vs ASTROVE 2.0 (Old)** |
+| **Score** | **124W – 80L – 196D** (400 Games) |
+| **Win Rate** | **55.5%** |
+| **Elo Gain** | **+38.4 ± 24.3** |
 | **LOS** | **100.0%** |
-| **Draw Ratio** | **50.7%** |
+| **Draw Ratio** | **49%** |
 
 ---
 
@@ -44,12 +44,13 @@ ASTROVE combines classical alpha-beta search techniques with a hand-crafted eval
 * **Concurrency:** 8 Threads
 
 ```text
-Score of ASTROVE_NEW vs ASTROVE_OLD: 126 - 71 - 203  [0.569] 400
-...      ASTROVE_NEW playing White: 91 - 17 - 92  [0.685] 200
-...      ASTROVE_NEW playing Black: 35 - 54 - 111  [0.453] 200
-...      White vs Black: 145 - 52 - 203  [0.616] 400
-Elo difference: 48.1 +/- 23.9, LOS: 100.0 %, DrawRatio: 50.7 %
+Score of ASTROVE_NEW vs ASTROVE_OLD: 124 - 80 - 196  [0.555] 400
+...      ASTROVE_NEW playing White: 78 - 20 - 102  [0.645] 200
+...      ASTROVE_NEW playing Black: 46 - 60 - 94  [0.465] 200
+...      White vs Black: 138 - 66 - 196  [0.590] 400
+Elo difference: 38.4 +/- 24.3, LOS: 99.9 %, DrawRatio: 49.0 %
 SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
 
 ```
 
